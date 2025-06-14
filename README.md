@@ -4,4 +4,5 @@
 效果图
 
 
-![全能视频播放器](https://github.com/user-attachments/assets/5b6ca78c-6a00-4112-9b27-4fc2053f9841)
+
+![测试](https://github.com/user-attachments/assets/8cbcfc15-afc2-41be-9112-94a92c07d99f)
