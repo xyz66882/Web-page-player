@@ -202,6 +202,7 @@
       align-items: center;
       gap: 8px;
       transition: var(--transition);
+      white-space: nowrap; /* Prevent wrapping for button text */
     }
 
     .btn-primary {
@@ -337,6 +338,8 @@
       align-items: center;
       cursor: pointer;
       transition: var(--transition);
+      flex-wrap: wrap; /* Allow wrapping of elements within the item */
+      gap: 8px; /* Space between elements */
     }
 
     .dark-mode .history-item {
@@ -351,17 +354,44 @@
       background: rgba(74, 108, 247, 0.1);
     }
 
-    .history-item .title {
+    .history-item .title-wrapper {
       flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      min-width: 150px; /* Ensure it doesn't get too small */
       margin-right: 10px;
+      display: flex; /* Allow span and input to align */
+      align-items: center;
+    }
+
+    .history-item .history-title-display {
+      flex: 1; /* Allow it to take available space */
+      word-break: break-word; /* Allow long URLs/words to break */
+      line-height: 1.4; /* Improve readability for multi-line text */
+      min-width: 0; /* Important for flex items with word-break */
+    }
+
+    .history-item .history-title-edit {
+      flex: 1; /* Allow it to grow */
+      padding: 4px 8px; /* Match display padding */
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      font-size: 14px; /* Match display font size */
+      background: transparent;
+      color: var(--text-primary);
+      min-width: 100px; /* Ensure input is not too small */
+      word-break: break-word; /* Allow long URLs/words to break */
+      line-height: 1.4; /* Improve readability for multi-line text */
+      height: auto; /* Allow height to adjust based on content */
+      resize: vertical; /* Allow vertical resizing for user */
+    }
+
+    .dark-mode .history-item .history-title-edit {
+      border-color: var(--border-dark);
     }
 
     .history-item .actions {
       display: flex;
       gap: 8px;
+      margin-left: auto; /* Push actions to the right */
     }
 
     .history-item .actions button {
@@ -369,13 +399,18 @@
       border: none;
       color: var(--text-secondary);
       cursor: pointer;
-      width: 24px;
-      height: 24px;
       display: flex;
+      flex-direction: column; /* Stack label and icon */
       align-items: center;
       justify-content: center;
       border-radius: 4px;
       transition: var(--transition);
+      padding: 5px; /* Add some padding to the button itself to contain label and icon */
+      min-width: 40px; /* Ensure buttons don't become too small */
+    }
+
+    .history-item .actions button i {
+      font-size: 16px; /* Adjust icon size if needed */
     }
 
     .dark-mode .history-item .actions button {
@@ -383,12 +418,28 @@
     }
 
     .history-item .actions button:hover {
-      background: rgba(0, 0, 0, 0.1);
-      color: var(--danger);
+      background: rgba(74, 108, 247, 0.1); /* Subtle background on hover */
+      color: var(--primary); /* Change icon color on hover */
     }
 
     .dark-mode .history-item .actions button:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(74, 108, 247, 0.2);
+    }
+
+    .history-item .actions .button-label {
+      font-size: 10px; /* Smaller font for the label */
+      color: var(--text-secondary); /* Muted color */
+      background: var(--card-light); /* Background for readability */
+      padding: 2px 5px;
+      border-radius: 4px;
+      white-space: nowrap; /* Prevent label text from wrapping */
+      margin-bottom: 2px; /* Space between label and icon */
+      opacity: 0.9; /* Slightly transparent */
+    }
+
+    .dark-mode .history-item .actions .button-label {
+      background: var(--card-dark);
+      color: #94a3b8;
     }
 
     .empty-history {
@@ -483,6 +534,28 @@
       .subtitle-controls,
       .subtitle-settings {
         flex-direction: column;
+      }
+
+      .history-item {
+        flex-direction: column; /* Stack elements vertically on small screens */
+        align-items: flex-start;
+      }
+
+      .history-item .title-wrapper {
+        width: 100%; /* Take full width */
+        margin-right: 0;
+        margin-bottom: 8px; /* Space below title */
+      }
+
+      .history-item .format-tag {
+        margin-left: 0; /* Remove left margin */
+        margin-bottom: 8px; /* Space below format tag */
+      }
+
+      .history-item .actions {
+        width: 100%; /* Take full width */
+        justify-content: flex-start; /* Align buttons to start */
+        margin-left: 0;
       }
     }
 
@@ -767,6 +840,7 @@
       font-size: 12px;
       font-weight: 500;
       margin-left: 8px;
+      white-space: nowrap; /* Ensure format tag text doesn't wrap */
     }
 
     .dark-mode .format-tag {
@@ -1064,6 +1138,11 @@
     let currentSubtitleFileName = null; // 当前加载的字幕文件名
     let isSeeking = false; // 用于标记用户是否正在拖动进度条
 
+    // 用于跟踪当前正在编辑的历史项索引，-1表示没有项在编辑
+    let currentlyEditingIndex = -1;
+    // 存储对输入框事件监听器的引用，以便在保存时正确移除
+    const inputEventListeners = new Map(); // Map<index, {blurHandler, keypressHandler}>
+
     // 支持的视频格式列表 (用于文件扩展名检查)
     const supportedFormats = [
       'mp4',
@@ -1130,6 +1209,23 @@
       updateToggleSubtitleButtonIcon();
       // 初始化静音按钮的图标
       updateMuteButtonIcon();
+
+      // 为历史记录列表添加事件委托，处理编辑/保存按钮点击
+      const historyList = document.getElementById('historyList');
+      historyList.addEventListener('click', function(e) {
+        const targetBtn = e.target.closest('.edit-save-btn');
+        if (targetBtn) {
+          const index = parseInt(targetBtn.dataset.index);
+          const action = targetBtn.dataset.action;
+
+          if (action === 'edit') {
+            startEditMode(index);
+          } else if (action === 'save' && currentlyEditingIndex === index) {
+            // 只有当按钮是当前正在编辑的项的保存按钮时才触发保存
+            saveEditMode(index);
+          }
+        }
+      });
     });
 
     // 设置上传区域功能
@@ -1804,6 +1900,147 @@
       updateToggleSubtitleButtonIcon(); // 字幕已移除，更新图标为“隐藏”状态
     }
 
+    // Helper function to create event handlers for input
+    function createInputHandlers(index) {
+      const historyItem = document.getElementById(`historyItem_${index}`);
+      const editInput = historyItem.querySelector('.history-title-edit');
+
+      const blurHandler = (event) => {
+        // 只有当当前编辑的索引匹配时才尝试保存，防止多个 blur 事件触发
+        if (currentlyEditingIndex === index) {
+            // Check if the blur is not caused by clicking the save button itself
+            // This is a common pattern to avoid double-triggers
+            if (!event.relatedTarget || !event.relatedTarget.closest('.edit-save-btn')) {
+                saveEditMode(index);
+            }
+        }
+      };
+
+      const keypressHandler = (event) => {
+        if (event.key === 'Enter') {
+          saveEditMode(index);
+          event.preventDefault(); // Prevent form submission if input is inside a form
+        }
+      };
+
+      return { blurHandler, keypressHandler };
+    }
+
+    // 启动编辑模式
+    function startEditMode(index) {
+      // 如果另一个项正在编辑，先保存它
+      if (currentlyEditingIndex !== -1 && currentlyEditingIndex !== index) {
+        saveEditMode(currentlyEditingIndex);
+      }
+
+      const historyItem = document.getElementById(`historyItem_${index}`);
+      if (!historyItem) return;
+
+      const displaySpan = historyItem.querySelector('.history-title-display');
+      const editInput = historyItem.querySelector('.history-title-edit');
+      const editSaveBtn = historyItem.querySelector('.edit-save-btn');
+      const editSaveIcon = editSaveBtn.querySelector('i');
+      const editSaveLabel = editSaveBtn.querySelector('.button-label');
+
+
+      displaySpan.style.display = 'none';
+      editInput.style.display = 'inline-block';
+      editInput.value = displaySpan.textContent; // 将当前显示文本设置为输入框的值
+      editInput.focus();
+      editInput.select(); // 选中所有文本，方便用户编辑
+
+      editSaveBtn.setAttribute('data-action', 'save');
+      editSaveIcon.className = 'fas fa-check'; // 更改图标为对勾
+      editSaveLabel.textContent = '保存'; // 更改标签文本为保存
+
+      // 添加事件监听器用于保存
+      const handlers = createInputHandlers(index);
+      editInput.addEventListener('blur', handlers.blurHandler);
+      editInput.addEventListener('keypress', handlers.keypressHandler);
+      inputEventListeners.set(index, handlers); // 存储处理器引用
+
+      currentlyEditingIndex = index;
+    }
+
+    // 保存编辑模式
+    function saveEditMode(index) {
+      // 只有当该项是当前正在编辑的项时才执行保存
+      if (currentlyEditingIndex !== index) return;
+
+      const historyItem = document.getElementById(`historyItem_${index}`);
+      if (!historyItem) return;
+
+      const displaySpan = historyItem.querySelector('.history-title-display');
+      const editInput = historyItem.querySelector('.history-title-edit');
+      const editSaveBtn = historyItem.querySelector('.edit-save-btn');
+      const editSaveIcon = editSaveBtn.querySelector('i');
+      const editSaveLabel = editSaveBtn.querySelector('.button-label');
+
+      const newTitle = editInput.value.trim();
+
+      // 如果新标题为空，则恢复到历史记录中原有的标题
+      if (newTitle === '') {
+        editInput.value = playbackHistory[index].title; // 恢复输入框内容
+      } else {
+        // 更新历史记录数组
+        playbackHistory[index].title = newTitle;
+        localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory));
+      }
+      displaySpan.textContent = playbackHistory[index].title; // 更新显示文本
+      // Removed title attribute update as it's no longer the primary display for labels
+      // displaySpan.title = playbackHistory[index].title; 
+
+      displaySpan.style.display = 'inline-block';
+      editInput.style.display = 'none';
+
+      editSaveBtn.setAttribute('data-action', 'edit');
+      editSaveIcon.className = 'fas fa-edit'; // 更改图标回编辑
+      editSaveLabel.textContent = '备注'; // 更改标签文本回备注
+
+      // 移除事件监听器，避免重复绑定
+      const handlers = inputEventListeners.get(index);
+      if (handlers) {
+        editInput.removeEventListener('blur', handlers.blurHandler);
+        editInput.removeEventListener('keypress', handlers.keypressHandler);
+        inputEventListeners.delete(index); // 从Map中移除
+      }
+
+      currentlyEditingIndex = -1; // 重置编辑状态
+    }
+
+    // Function to determine if a URL is likely a valid video URL
+    function isValidVideoUrl(url) {
+      // Check for common video file extensions
+      const videoExtensions = ['mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', 'avi', 'wmv', '3gp', 'ogg', 'mpg', 'mpeg', 'vob'];
+      const extension = getFileExtension(url);
+
+      // Check if it's a blob URL (local file)
+      if (url.startsWith('blob:')) {
+        return true;
+      }
+
+      // Check if it has a known video extension
+      if (videoExtensions.includes(extension)) {
+        return true;
+      }
+
+      // Check for common streaming protocols/patterns
+      if (url.includes('.m3u8') || url.includes('.flv')) {
+        return true;
+      }
+
+      // Specifically exclude the example invalid link provided by the user
+      // Assuming "https/chat.deepseek.com/..." is an example of an invalid link.
+      // We check for "chat.deepseek.com" and also if it's missing "://"
+      if (url.includes('chat.deepseek.com') || !url.includes('://')) {
+          return false;
+      }
+
+      // Default to false if no specific video pattern is found
+      return false;
+    }
+
+
     // 添加到历史记录
     function addToHistory(title, url) {
       // 避免重复添加
@@ -1830,6 +2067,15 @@
     function renderHistory() {
       const historyList = document.getElementById('historyList');
 
+      // 如果有项正在编辑，先保存它，因为DOM将被重新创建
+      if (currentlyEditingIndex !== -1) {
+        saveEditMode(currentlyEditingIndex);
+      }
+
+      // 清除所有旧的事件监听器引用和编辑状态，因为DOM元素将被替换
+      inputEventListeners.clear();
+      currentlyEditingIndex = -1;
+
       if (playbackHistory.length === 0) {
         historyList.innerHTML = '<div class="empty-history">暂无播放历史</div>';
         return;
@@ -1840,23 +2086,41 @@
       playbackHistory.forEach((item, index) => {
         const historyItem = document.createElement('div');
         historyItem.className = 'history-item';
+        historyItem.id = `historyItem_${index}`; // 添加ID以便直接访问
 
-        let format = '未知';
-        if (item.url.startsWith('blob:')) {
-          format = '本地视频';
-        } else {
-          const ext = getFileExtension(item.url);
-          if (ext) {
-            format = ext.toUpperCase();
+        let formatTagHtml = '';
+        if (isValidVideoUrl(item.url)) {
+          let format = '未知';
+          if (item.url.startsWith('blob:')) {
+            format = '本地视频';
+          } else {
+            const ext = getFileExtension(item.url);
+            if (ext) {
+              format = ext.toUpperCase();
+            }
           }
+          formatTagHtml = `<div class="format-tag">${format}</div>`;
         }
 
         historyItem.innerHTML = `
-          <div class="title" title="${item.title}">${item.title}</div>
-          <div class="format-tag">${format}</div>
+          <div class="title-wrapper">
+            <span class="history-title-display">${item.title}</span>
+            <input type="text" class="history-title-edit" value="${item.title}" style="display:none;" />
+          </div>
+          ${formatTagHtml}
           <div class="actions">
-            <button title="播放" onclick="playFromHistory('${item.url}')"><i class="fas fa-play"></i></button>
-            <button title="删除" onclick="removeHistoryItem(${index})"><i class="fas fa-trash"></i></button>
+            <button class="play-btn" onclick="playFromHistory('${item.url}')">
+              <span class="button-label">播放</span>
+              <i class="fas fa-play"></i>
+            </button>
+            <button class="edit-save-btn" data-index="${index}" data-action="edit">
+              <span class="button-label">备注</span>
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="delete-btn" onclick="removeHistoryItem(${index})">
+              <span class="button-label">删除</span>
+              <i class="fas fa-trash"></i>
+            </button>
           </div>
         `;
         historyList.appendChild(historyItem);
@@ -1877,7 +2141,7 @@
     function removeHistoryItem(index) {
       playbackHistory.splice(index, 1);
       localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory));
-      renderHistory();
+      renderHistory(); // renderHistory会处理当前编辑项的保存和状态重置
     }
 
     // 清空历史记录
@@ -1887,7 +2151,7 @@
       if (confirm('确定要清空所有播放历史吗？')) {
         playbackHistory = [];
         localStorage.removeItem('playbackHistory');
-        renderHistory();
+        renderHistory(); // renderHistory会处理当前编辑项的保存和状态重置
       }
     }
 
