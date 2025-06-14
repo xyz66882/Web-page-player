@@ -37,7 +37,7 @@
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+      font-family: 'Inter', -apple-system, BlinkMacMacFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
         sans-serif;
       background: var(--bg-light);
       color: var(--text-primary);
@@ -148,6 +148,9 @@
       width: 100%;
       height: 100%;
       outline: none;
+      /* Add transitions for smooth transformations and filters */
+      transform-origin: center center;
+      transition: transform 0.1s ease-out, filter 0.1s ease-out;
     }
 
     /* 控制面板 */
@@ -942,6 +945,184 @@
     .dark-mode .format-badge {
       background: rgba(74, 108, 247, 0.2);
     }
+
+    /* Settings Toggle Button */
+    .settings-toggle-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      z-index: 1000;
+      transition: var(--transition);
+    }
+
+    .settings-toggle-btn:hover {
+      background: var(--primary-dark);
+      transform: rotate(90deg);
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      position: fixed;
+      top: 80px; /* Below the toggle button */
+      right: 20px;
+      width: 300px;
+      background: var(--card-light);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      z-index: 999;
+      transform: translateX(calc(100% + 20px)); /* Hidden by default */
+      transition: transform 0.3s ease-out, box-shadow 0.3s ease;
+    }
+
+    .dark-mode .settings-panel {
+      background: var(--card-dark);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .settings-panel.open {
+      transform: translateX(0); /* Show when open */
+    }
+
+    .settings-panel h3 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .settings-panel h4 {
+      font-size: 16px;
+      margin-top: 15px;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .settings-panel .setting-group {
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+
+    .dark-mode .settings-panel .setting-group {
+      border-color: var(--border-dark);
+    }
+
+    .settings-panel .setting-group:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .settings-panel .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .settings-panel .btn-group .btn {
+      flex: 1;
+      min-width: unset; /* Override default min-width */
+      text-align: center;
+      justify-content: center;
+    }
+
+    .settings-panel .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .settings-panel .slider-group label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      min-width: 50px;
+    }
+
+    .settings-panel .slider-group input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .dark-mode .settings-panel .slider-group input[type="range"] {
+      background: #334155;
+    }
+
+    .settings-panel .slider-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .settings-panel .slider-group input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .settings-panel .slider-group span {
+      font-size: 14px;
+      min-width: 40px;
+      text-align: right;
+      color: var(--text-primary);
+    }
+
+    .settings-panel .preset-buttons {
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .settings-panel .btn-full-width {
+      width: 100%;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    /* Responsive adjustments for settings panel */
+    @media (max-width: 768px) {
+      .settings-toggle-btn {
+        top: 10px;
+        right: 10px;
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+      }
+
+      .settings-panel {
+        top: 65px;
+        right: 10px;
+        width: calc(100% - 20px); /* Full width minus padding */
+        max-width: 350px; /* Limit max width */
+        transform: translateX(calc(100% + 10px)); /* Hidden by default */
+      }
+
+      .settings-panel.open {
+        transform: translateX(0);
+      }
+    }
   </style>
 </head>
 <body>
@@ -986,6 +1167,10 @@
               accept="video/mp4,video/webm,video/ogg,video/x-flv,video/quicktime,video/x-msvideo,video/x-ms-wmv,video/3gpp,video/x-matroska,video/avi,video/mpeg,video/mov"
             />
           </div>
+          <!-- New Download Button -->
+          <button class="btn btn-secondary" onclick="downloadVideo()">
+            <i class="fas fa-download"></i> 下载视频
+          </button>
         </div>
 
 
@@ -1033,9 +1218,6 @@
         </div>
 
         <div class="btn-group">
-          <button class="btn btn-secondary" onclick="toggleFullscreen()">
-            <i class="fas fa-expand"></i> 全屏
-          </button>
           <button class="btn btn-secondary" onclick="changeSpeed(0.5)">
             <i class="fas fa-tachometer-alt"></i> 0.5x
           </button>
@@ -1047,6 +1229,9 @@
           </button>
           <button class="btn btn-secondary" onclick="changeSpeed(2)">
             <i class="fas fa-tachometer-alt"></i> 2x
+          </button>
+          <button class="btn btn-secondary" onclick="toggleFullscreen()">
+            <i class="fas fa-expand"></i> 全屏
           </button>
         </div>
 
@@ -1128,6 +1313,56 @@
     </div>
   </div>
 
+  <!-- Floating button to open settings -->
+  <button class="settings-toggle-btn" id="settingsToggleBtn">
+    <i class="fas fa-cog"></i>
+  </button>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <h3><i class="fas fa-sliders-h"></i> 视频设置</h3>
+
+    <div class="setting-group">
+      <h4>画面调节</h4>
+      <div class="btn-group">
+        <button class="btn btn-secondary" id="rotate90Btn"><i class="fas fa-redo-alt"></i> 旋转 90°</button>
+        <button class="btn btn-secondary" id="flipXBtn"><i class="fas fa-arrows-alt-h"></i> 水平镜像</button>
+        <button class="btn btn-secondary" id="flipYBtn"><i class="fas fa-arrows-alt-v"></i> 垂直镜像</button>
+      </div>
+      <div class="slider-group">
+        <label for="zoomSlider">缩放:</label>
+        <input type="range" id="zoomSlider" min="0.5" max="3" step="0.01" value="1" />
+        <span id="zoomValue">100%</span>
+      </div>
+      <button class="btn btn-secondary btn-full-width" id="resetTransformBtn"><i class="fas fa-sync-alt"></i> 重置画面</button>
+    </div>
+
+    <div class="setting-group">
+      <h4>滤镜调节</h4>
+      <div class="slider-group">
+        <label for="brightnessSlider">亮度:</label>
+        <input type="range" id="brightnessSlider" min="0" max="200" step="1" value="100" />
+        <span id="brightnessValue">100%</span>
+      </div>
+      <div class="slider-group">
+        <label for="contrastSlider">对比度:</label>
+        <input type="range" id="contrastSlider" min="0" max="200" step="1" value="100" />
+        <span id="contrastValue">100%</span>
+      </div>
+      <div class="slider-group">
+        <label for="saturationSlider">饱和度:</label>
+        <input type="range" id="saturationSlider" min="0" max="200" step="1" value="100" />
+        <span id="saturationValue">100%</span>
+      </div>
+      <div class="btn-group preset-buttons">
+        <button class="btn btn-secondary preset-btn" data-preset="vibrant">鲜艳</button>
+        <button class="btn btn-secondary preset-btn" data-preset="cinematic">电影</button>
+        <button class="btn btn-secondary preset-btn" data-preset="monochrome">黑白</button>
+      </div>
+      <button class="btn btn-secondary btn-full-width" id="resetFilterBtn"><i class="fas fa-sync-alt"></i> 重置滤镜</button>
+    </div>
+  </div>
+
   <script>
     let hlsInstance = null;
     let flvPlayer = null;
@@ -1137,6 +1372,9 @@
     let subtitleActive = false; // 控制自定义字幕显示是否激活
     let currentSubtitleFileName = null; // 当前加载的字幕文件名
     let isSeeking = false; // 用于标记用户是否正在拖动进度条
+    
+    // Global variable to store the current local file object if playing local video
+    let currentLocalFile = null;
 
     // 用于跟踪当前正在编辑的历史项索引，-1表示没有项在编辑
     let currentlyEditingIndex = -1;
@@ -1158,6 +1396,7 @@
       'mpg',
       'mpeg',
       'vob',
+      'ts', // Added for HLS segments
     ];
 
     // 字幕设置的默认值
@@ -1166,6 +1405,16 @@
       color: '#FFFFFF',
     };
     let currentSubtitleSettings = JSON.parse(localStorage.getItem('subtitleSettings')) || defaultSubtitleSettings;
+
+    // --- New: Video Transformation and Filter Variables ---
+    let currentRotation = 0; // 0, 90, 180, 270 degrees
+    let currentFlipX = 1; // 1 for normal, -1 for flipped
+    let currentFlipY = 1; // 1 for normal, -1 for flipped
+    let currentZoom = 1; // 0.5 to 3
+
+    let currentBrightness = 100; // 0-200%
+    let currentContrast = 100; // 0-200%
+    let currentSaturation = 100; // 0-200%
 
     // 初始化页面
     document.addEventListener('DOMContentLoaded', function () {
@@ -1226,7 +1475,148 @@
           }
         }
       });
+
+      // --- New: Setup Settings Panel and Controls ---
+      setupSettingsPanel();
+      // Apply initial transformations and filters
+      applyVideoTransformations();
+      applyVideoFilters();
     });
+
+    // --- New: Setup Settings Panel and Controls ---
+    function setupSettingsPanel() {
+      const settingsToggleBtn = document.getElementById('settingsToggleBtn');
+      const settingsPanel = document.getElementById('settingsPanel');
+      const videoPlayer = document.getElementById('videoPlayer');
+
+      settingsToggleBtn.addEventListener('click', () => {
+        settingsPanel.classList.toggle('open');
+      });
+
+      // Video Transformations
+      const rotate90Btn = document.getElementById('rotate90Btn');
+      const flipXBtn = document.getElementById('flipXBtn');
+      const flipYBtn = document.getElementById('flipYBtn');
+      const zoomSlider = document.getElementById('zoomSlider');
+      const zoomValueSpan = document.getElementById('zoomValue');
+      const resetTransformBtn = document.getElementById('resetTransformBtn');
+
+      rotate90Btn.addEventListener('click', () => {
+        currentRotation = (currentRotation + 90) % 360;
+        applyVideoTransformations();
+      });
+
+      flipXBtn.addEventListener('click', () => {
+        currentFlipX *= -1;
+        applyVideoTransformations();
+      });
+
+      flipYBtn.addEventListener('click', () => {
+        currentFlipY *= -1;
+        applyVideoTransformations();
+      });
+
+      zoomSlider.addEventListener('input', () => {
+        currentZoom = parseFloat(zoomSlider.value);
+        zoomValueSpan.textContent = `${Math.round(currentZoom * 100)}%`;
+        applyVideoTransformations();
+      });
+
+      resetTransformBtn.addEventListener('click', () => {
+        currentRotation = 0;
+        currentFlipX = 1;
+        currentFlipY = 1;
+        currentZoom = 1;
+        zoomSlider.value = 1;
+        zoomValueSpan.textContent = '100%';
+        applyVideoTransformations();
+      });
+
+      // Video Filters
+      const brightnessSlider = document.getElementById('brightnessSlider');
+      const brightnessValueSpan = document.getElementById('brightnessValue');
+      const contrastSlider = document.getElementById('contrastSlider');
+      const contrastValueSpan = document.getElementById('contrastValue');
+      const saturationSlider = document.getElementById('saturationSlider');
+      const saturationValueSpan = document.getElementById('saturationValue');
+      const resetFilterBtn = document.getElementById('resetFilterBtn');
+      const presetFilterBtns = document.querySelectorAll('.preset-btn');
+
+      brightnessSlider.addEventListener('input', () => {
+        currentBrightness = parseInt(brightnessSlider.value);
+        brightnessValueSpan.textContent = `${currentBrightness}%`;
+        applyVideoFilters();
+      });
+
+      contrastSlider.addEventListener('input', () => {
+        currentContrast = parseInt(contrastSlider.value);
+        contrastValueSpan.textContent = `${currentContrast}%`;
+        applyVideoFilters();
+      });
+
+      saturationSlider.addEventListener('input', () => {
+        currentSaturation = parseInt(saturationSlider.value);
+        saturationValueSpan.textContent = `${currentSaturation}%`;
+        applyVideoFilters();
+      });
+
+      resetFilterBtn.addEventListener('click', () => {
+        currentBrightness = 100;
+        currentContrast = 100;
+        currentSaturation = 100;
+        brightnessSlider.value = 100;
+        contrastSlider.value = 100;
+        saturationSlider.value = 100;
+        brightnessValueSpan.textContent = '100%';
+        contrastValueSpan.textContent = '100%';
+        saturationValueSpan.textContent = '100%';
+        applyVideoFilters();
+      });
+
+      presetFilterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const preset = e.target.dataset.preset;
+          switch (preset) {
+            case 'vibrant':
+              currentBrightness = 105;
+              currentContrast = 110;
+              currentSaturation = 150;
+              break;
+            case 'cinematic':
+              currentBrightness = 95;
+              currentContrast = 120;
+              currentSaturation = 80;
+              break;
+            case 'monochrome':
+              currentBrightness = 100;
+              currentContrast = 100;
+              currentSaturation = 0;
+              break;
+            default:
+              break;
+          }
+          brightnessSlider.value = currentBrightness;
+          contrastSlider.value = currentContrast;
+          saturationSlider.value = currentSaturation;
+          brightnessValueSpan.textContent = `${currentBrightness}%`;
+          contrastValueSpan.textContent = `${currentContrast}%`;
+          saturationValueSpan.textContent = `${currentSaturation}%`;
+          applyVideoFilters();
+        });
+      });
+    }
+
+    // --- New: Apply Video Transformations ---
+    function applyVideoTransformations() {
+      const video = document.getElementById('videoPlayer');
+      video.style.transform = `rotate(${currentRotation}deg) scaleX(${currentFlipX}) scaleY(${currentFlipY}) scale(${currentZoom})`;
+    }
+
+    // --- New: Apply Video Filters ---
+    function applyVideoFilters() {
+      const video = document.getElementById('videoPlayer');
+      video.style.filter = `brightness(${currentBrightness}%) contrast(${currentContrast}%) saturate(${currentSaturation}%)`;
+    }
 
     // 设置上传区域功能
     function setupUploadArea() {
@@ -1494,6 +1884,7 @@
 
       // 停止之前的播放并清理
       stopPlaybackInternal();
+      currentLocalFile = file; // Store the file object
 
       // 播放新视频
       play(fileURL);
@@ -1676,6 +2067,7 @@
         flvPlayer.destroy();
         flvPlayer = null;
       }
+      currentLocalFile = null; // Clear the file object on stop
 
       // 清理字幕
       removeSubtitle();
@@ -1701,11 +2093,19 @@
     // Helper: 将时间字符串 (HH:MM:SS,ms 或 HH:MM:SS.ms) 转换为秒数
     function parseTime(timeStr) {
       const parts = timeStr.split(':');
-      const secondsAndMs = parts[2].split(/[,.]/); // 同时处理逗号和点作为毫秒分隔符
-      const hours = parseInt(parts[0], 10);
-      const minutes = parseInt(parts[1], 10);
-      const seconds = parseInt(secondsAndMs[0], 10);
-      const milliseconds = parseInt(secondsAndMs[1], 10) || 0;
+      const secondsAndMs = parts[parts.length - 1].split(/[,.]/); // Handle cases like 00:00.000 or 00:00:00.000
+      let hours = 0, minutes = 0, seconds = 0, milliseconds = 0;
+
+      if (parts.length === 3) { // HH:MM:SS
+          hours = parseInt(parts[0], 10);
+          minutes = parseInt(parts[1], 10);
+          seconds = parseInt(secondsAndMs[0], 10);
+          milliseconds = parseInt(secondsAndMs[1], 10) || 0;
+      } else if (parts.length === 2) { // MM:SS
+          minutes = parseInt(parts[0], 10);
+          seconds = parseInt(secondsAndMs[0], 10);
+          milliseconds = parseInt(secondsAndMs[1], 10) || 0;
+      }
       return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
     }
 
@@ -1715,40 +2115,43 @@
       const lines = content.split(/\r?\n/); // 兼容不同换行符
       let i = 0;
       while (i < lines.length) {
-        if (!lines[i].trim() || isNaN(parseInt(lines[i].trim(), 10))) {
-          if (lines[i].trim().toUpperCase() === 'WEBVTT') {
-            i++;
-            continue;
-          }
-          if (lines[i].trim().startsWith('NOTE') || lines[i].trim().startsWith('STYLE')) {
-            i++;
-            continue;
-          }
-          if (!lines[i].trim().includes('-->') && lines[i].trim() !== '') {
-            i++;
-            continue;
-          }
+        // Skip empty lines or non-cue lines until a number or WEBVTT/NOTE/STYLE is found
+        if (!lines[i].trim() || (isNaN(parseInt(lines[i].trim(), 10)) && !lines[i].trim().toUpperCase().startsWith('WEBVTT') && !lines[i].trim().startsWith('NOTE') && !lines[i].trim().startsWith('STYLE') && !lines[i].trim().includes('-->'))) {
           i++;
           continue;
         }
 
-        let timeLineFound = false;
+        if (lines[i].trim().toUpperCase() === 'WEBVTT') {
+          i++; // Skip WEBVTT header
+          while (i < lines.length && lines[i].trim() === '') i++; // Skip empty lines after header
+          continue;
+        }
+        if (lines[i].trim().startsWith('NOTE') || lines[i].trim().startsWith('STYLE')) {
+          i++; // Skip notes/styles
+          while (i < lines.length && lines[i].trim() !== '') i++; // Skip content of note/style
+          while (i < lines.length && lines[i].trim() === '') i++; // Skip empty lines after note/style
+          continue;
+        }
+
+        // Potential cue number or time line
+        let cueId = '';
+        if (!isNaN(parseInt(lines[i].trim(), 10))) {
+          cueId = lines[i].trim(); // This is the cue number, not strictly needed for display
+          i++;
+          while (i < lines.length && lines[i].trim() === '') i++; // Skip empty lines after cue ID
+        }
+
         let timeLine = '';
-        let textLines = [];
-        while (i < lines.length && lines[i].trim() !== '') {
-          if (lines[i].includes('-->')) {
-            timeLine = lines[i].trim();
-            timeLineFound = true;
-            i++;
-            break;
-          }
+        if (i < lines.length && lines[i].includes('-->')) {
+          timeLine = lines[i].trim();
           i++;
-        }
-
-        if (!timeLineFound) {
+        } else {
+          // If no time line, it's not a valid cue, move to next
+          i++;
           continue;
         }
 
+        let textLines = [];
         while (i < lines.length && lines[i].trim() !== '') {
           textLines.push(lines[i].trim());
           i++;
@@ -1764,6 +2167,7 @@
       }
       return subtitles;
     }
+
 
     // 上传字幕文件并加载
     function uploadSubtitleFile() {
@@ -2011,7 +2415,7 @@
     // Function to determine if a URL is likely a valid video URL
     function isValidVideoUrl(url) {
       // Check for common video file extensions
-      const videoExtensions = ['mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', 'avi', 'wmv', '3gp', 'ogg', 'mpg', 'mpeg', 'vob'];
+      const videoExtensions = ['mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', 'avi', 'wmv', '3gp', 'ogg', 'mpg', 'mpeg', 'vob', 'ts']; // Added 'ts' for HLS segments
       const extension = getFileExtension(url);
 
       // Check if it's a blob URL (local file)
@@ -2024,20 +2428,22 @@
         return true;
       }
 
-      // Check for common streaming protocols/patterns
+      // Check for common streaming protocols/patterns (e.g., .m3u8 or .flv in path)
       if (url.includes('.m3u8') || url.includes('.flv')) {
         return true;
       }
 
-      // Specifically exclude the example invalid link provided by the user
-      // Assuming "https/chat.deepseek.com/..." is an example of an invalid link.
-      // We check for "chat.deepseek.com" and also if it's missing "://"
-      if (url.includes('chat.deepseek.com') || !url.includes('://')) {
-          return false;
+      // Attempt to create a URL object to validate general URL format
+      try {
+        new URL(url);
+        // If it's a valid URL, but doesn't have a known video extension or pattern,
+        // we might still consider it valid if it's an online resource.
+        // For the purpose of displaying a format tag, we only want to tag *known* video formats.
+        // So, if it's just a generic URL, it's not necessarily a video.
+        return false; // If it's a generic URL without video extension/pattern, don't tag it.
+      } catch (e) {
+        return false; // Not a valid URL format
       }
-
-      // Default to false if no specific video pattern is found
-      return false;
     }
 
 
@@ -2097,6 +2503,10 @@
             const ext = getFileExtension(item.url);
             if (ext) {
               format = ext.toUpperCase();
+            } else if (item.url.includes('.m3u8')) {
+              format = 'M3U8';
+            } else if (item.url.includes('.flv')) {
+              format = 'FLV';
             }
           }
           formatTagHtml = `<div class="format-tag">${format}</div>`;
@@ -2262,6 +2672,147 @@
         document.body.classList.remove('dark-mode');
         icon.className = 'fas fa-moon';
       }
+    }
+
+    // --- New: Download Functionality ---
+    async function downloadVideo() {
+      const url = currentVideo; // Get the currently playing video URL
+
+      if (!url) {
+        alert('没有正在播放的视频可以下载。');
+        return;
+      }
+
+      // Handle local files
+      if (url.startsWith('blob:')) {
+        alert('当前正在播放的是本地视频，无需下载。');
+        return;
+      }
+
+      updateStatus('loading', '正在准备下载...');
+
+      try {
+        const extension = getFileExtension(url);
+        let filename = `video_${Date.now()}`; // Default filename
+
+        // Try to derive a better filename from the URL
+        try {
+            const urlObj = new URL(url);
+            const pathSegments = urlObj.pathname.split('/');
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            if (lastSegment && lastSegment.includes('.')) {
+                filename = lastSegment.split('?')[0].split('#')[0];
+            } else if (extension) {
+                filename += `.${extension}`;
+            }
+        } catch (e) {
+            console.warn("Could not parse URL for filename, using default.", e);
+            if (extension) {
+                filename += `.${extension}`;
+            }
+        }
+
+        if (extension === 'm3u8' || url.includes('.m3u8')) {
+          // HLS (M3U8) download
+          await downloadHLS(url, filename);
+        } else if (extension === 'flv' || url.includes('.flv')) {
+          // FLV download (assuming direct FLV file)
+          // For FLV, if it's a direct file, a simple download works.
+          // If it's a stream, it's more complex, but for VOD FLV, direct download is often possible.
+          await downloadDirect(url, filename);
+        } else {
+          // Direct download for other formats (MP4, WebM, etc.)
+          await downloadDirect(url, filename);
+        }
+        updateStatus('playing', '下载准备完成，浏览器将开始下载。');
+      } catch (error) {
+        console.error('下载失败:', error);
+        updateStatus('stopped', `下载失败: ${error.message || '未知错误'}`);
+        alert(`下载失败: ${error.message || '未知错误'}\n请检查控制台获取更多信息。`);
+      }
+    }
+
+    // Helper for direct file download
+    async function downloadDirect(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename; // Suggest a filename
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Helper for HLS (M3U8) download
+    async function downloadHLS(m3u8Url, baseFilename) {
+      updateStatus('loading', '正在下载M3U8播放列表...');
+      const response = await fetch(m3u8Url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch M3U8 manifest: ${response.statusText}`);
+      }
+      const manifestText = await response.text();
+
+      const segmentUrls = [];
+      const lines = manifestText.split('\n');
+      const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1);
+
+      for (const line of lines) {
+        if (line.startsWith('#') || line.trim() === '') {
+          continue; // Skip comments and empty lines
+        }
+        // Handle master playlist (if it points to other .m3u8 files)
+        if (line.endsWith('.m3u8')) {
+            const variantUrl = new URL(line, baseUrl).href; // Resolve relative URL
+            console.log(`Found variant M3U8: ${variantUrl}. Attempting to download it.`);
+            // Recursively call for the variant. This will download the first variant found.
+            return downloadHLS(variantUrl, baseFilename); 
+        }
+        // Assume it's a segment URL
+        const segmentUrl = new URL(line, baseUrl).href; // Resolve relative URL
+        segmentUrls.push(segmentUrl);
+      }
+
+      if (segmentUrls.length === 0) {
+        throw new Error('No video segments found in the M3U8 manifest.');
+      }
+
+      const segmentData = [];
+      let downloadedBytes = 0;
+      let totalSegments = segmentUrls.length;
+
+      for (let i = 0; i < totalSegments; i++) {
+        const segmentUrl = segmentUrls[i];
+        updateStatus('loading', `正在下载片段 ${i + 1}/${totalSegments}...`);
+        const segmentResponse = await fetch(segmentUrl);
+        if (!segmentResponse.ok) {
+          throw new Error(`Failed to fetch segment ${i + 1}: ${segmentResponse.statusText}`);
+        }
+        const buffer = await segmentResponse.arrayBuffer();
+        segmentData.push(new Uint8Array(buffer));
+        downloadedBytes += buffer.byteLength;
+      }
+
+      updateStatus('loading', '正在合并视频片段...');
+      // Concatenate all ArrayBuffers
+      const totalLength = segmentData.reduce((acc, val) => acc + val.length, 0);
+      const concatenatedBuffer = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const segment of segmentData) {
+        concatenatedBuffer.set(segment, offset);
+        offset += segment.length;
+      }
+
+      // Determine MIME type. For .ts segments, it's typically video/mp2t.
+      const blob = new Blob([concatenatedBuffer], { type: 'video/mp2t' }); 
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(blob);
+      // Suggest .ts extension for concatenated HLS, remove .m3u8 from original filename
+      downloadLink.download = `${baseFilename.replace(/\.m3u8$/, '')}.ts`; 
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      URL.revokeObjectURL(downloadLink.href); // Clean up the object URL
     }
   </script>
 </body>
