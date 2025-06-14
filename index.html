@@ -151,6 +151,7 @@
       /* Add transitions for smooth transformations and filters */
       transform-origin: center center;
       transition: transform 0.1s ease-out, filter 0.1s ease-out;
+      object-fit: contain; /* 确保视频在容器内完整显示，不裁剪，保持宽高比 */
     }
 
     /* 控制面板 */
@@ -882,35 +883,38 @@
 
     /* 字幕样式 */
     .subtitle-display {
-      position: absolute;
+      position: absolute; /* Default: relative to .video-container */
       bottom: 60px;
-      /* Adjust as needed */
       left: 50%;
       transform: translateX(-50%);
       width: auto;
-      /* Allow width to adjust to content */
       max-width: 90%;
-      /* Limit width */
       padding: 8px 12px;
-      /* background: rgba(0, 0, 0, 0.8); removed black background */
       color: white;
-      /* Default color, overridden by JS */
       font-size: 20px;
-      /* Default size, overridden by JS */
       font-weight: 500;
       z-index: 10;
       border-radius: 6px;
-      /* Slightly less rounded corners */
       text-align: center;
       line-height: 1.4;
       pointer-events: none;
-      /* Allow clicks to pass through to video */
       display: none;
-      /* Hidden by default */
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9), -1px -1px 2px rgba(0, 0, 0, 0.9), 1px -1px 2px rgba(0, 0, 0, 0.9),
         -1px 1px 2px rgba(0, 0, 0, 0.9);
-      /* Stronger text shadow for readability without background */
     }
+
+    /* Fullscreen specific styles for subtitle display */
+    .video-container.fullscreen-active .subtitle-display {
+      position: fixed; /* Change to fixed when fullscreen */
+      bottom: 60px; /* Keep position from bottom */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2147483647; /* Max z-index to be on top of fullscreen video */
+      /* Ensure it's still centered and sized appropriately for fullscreen */
+      max-width: 90%;
+      width: auto;
+    }
+
 
     /* 格式支持提示 */
     .format-support {
@@ -1481,7 +1485,26 @@
       // Apply initial transformations and filters
       applyVideoTransformations();
       applyVideoFilters();
+
+      // Add fullscreen change listener to re-apply styles
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
     });
+
+    // --- New: Handle Fullscreen Change ---
+    function handleFullscreenChange() {
+        const videoContainer = document.querySelector('.video-container');
+        if (document.fullscreenElement) {
+            // Entered fullscreen
+            videoContainer.classList.add('fullscreen-active');
+            applyVideoTransformations(); // Re-apply transformations
+            applyVideoFilters(); // Re-apply filters
+        } else {
+            // Exited fullscreen
+            videoContainer.classList.remove('fullscreen-active');
+            applyVideoTransformations(); // Re-apply transformations
+            applyVideoFilters(); // Re-apply filters
+        }
+    }
 
     // --- New: Setup Settings Panel and Controls ---
     function setupSettingsPanel() {
@@ -2568,25 +2591,27 @@
     // 切换全屏
     function toggleFullscreen() {
       const video = document.getElementById('videoPlayer');
+      const videoContainer = document.querySelector('.video-container'); // Use the container for fullscreen
 
       if (!document.fullscreenElement) {
-        if (video.requestFullscreen) {
-          video.requestFullscreen();
-        } else if (video.mozRequestFullScreen) {
-          video.mozRequestFullScreen();
-        } else if (video.webkitRequestFullscreen) {
-          video.webkitRequestFullscreen();
-        } else if (video.msRequestFullscreen) {
-          video.msRequestFullscreen();
+        // Request fullscreen on the video container to keep related elements together
+        if (videoContainer.requestFullscreen) {
+          videoContainer.requestFullscreen();
+        } else if (videoContainer.mozRequestFullScreen) { // Firefox
+          videoContainer.mozRequestFullScreen();
+        } else if (videoContainer.webkitRequestFullscreen) { // Chrome, Safari, Opera
+          videoContainer.webkitRequestFullscreen();
+        } else if (videoContainer.msRequestFullscreen) { // IE/Edge
+          videoContainer.msRequestFullscreen();
         }
       } else {
         if (document.exitFullscreen) {
           document.exitFullscreen();
-        } else if (document.mozCancelFullScreen) {
+        } else if (document.mozCancelFullScreen) { // Firefox
           document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) {
+        } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
           document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
+        } else if (document.msExitFullscreen) { // IE/Edge
           document.msExitFullscreen();
         }
       }
@@ -2739,7 +2764,14 @@
       a.download = filename; // Suggest a filename
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      // Give browser a moment to initiate download before revoking
+      setTimeout(() => {
+          document.body.removeChild(a);
+          // If it's a blob URL, revoke it (though for direct URL, browser manages)
+          if (url.startsWith('blob:')) {
+              URL.revokeObjectURL(url);
+          }
+      }, 100);
     }
 
     // Helper for HLS (M3U8) download
@@ -2810,9 +2842,10 @@
       downloadLink.download = `${baseFilename.replace(/\.m3u8$/, '')}.ts`; 
       document.body.appendChild(downloadLink);
       downloadLink.click();
-      document.body.removeChild(downloadLink);
-
-      URL.revokeObjectURL(downloadLink.href); // Clean up the object URL
+      setTimeout(() => {
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(downloadLink.href); // Clean up the object URL
+      }, 100); // Delay revocation to ensure download starts
     }
   </script>
 </body>
