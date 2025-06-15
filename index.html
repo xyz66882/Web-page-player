@@ -135,10 +135,21 @@
     /* 播放器区域 */
     .video-container {
       position: relative;
-      padding-top: 56.25%;
+      padding-top: 56.25%; /* 16:9 Aspect Ratio */
       background: #000;
       border-radius: 0 0 12px 12px;
       overflow: hidden;
+    }
+
+    /* Fullscreen specific styles for video container */
+    .video-container.fullscreen-active {
+      padding-top: 0 !important; /* Remove aspect ratio padding in fullscreen */
+      width: 100vw; /* Take full viewport width */
+      height: 100vh; /* Take full viewport height */
+      display: flex; /* Use flexbox to center the video */
+      align-items: center;
+      justify-content: center;
+      border-radius: 0; /* Remove border-radius in fullscreen */
     }
 
     #videoPlayer {
@@ -151,8 +162,17 @@
       /* Add transitions for smooth transformations and filters */
       transform-origin: center center;
       transition: transform 0.1s ease-out, filter 0.1s ease-out;
-      object-fit: contain; /* 确保视频在容器内完整显示，不裁剪，保持宽高比 */
+      object-fit: contain; /* Ensure video fits without distortion, adding black bars if necessary */
     }
+
+    /* When in fullscreen, the video player should also fill its container */
+    .video-container.fullscreen-active #videoPlayer {
+      position: static; /* Let flexbox handle positioning */
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* Maintain aspect ratio */
+    }
+
 
     /* 控制面板 */
     .control-panel {
@@ -2804,7 +2824,7 @@
       }
 
       if (segmentUrls.length === 0) {
-        throw new Error('No video segments found in the M3U8 manifest.');
+        throw new Error('No video segments found in the M3u8 manifest.');
       }
 
       const segmentData = [];
