@@ -6,7 +6,6 @@
 
 
 
-![电脑播放器ui](https://github.com/user-attachments/assets/6e983f2a-afbb-4374-af77-656a4c1ee3e1)
-![手机ui图1](https://github.com/user-attachments/assets/705ebbfe-ff95-472c-ba77-1cf053588205)
-![手机ui图3](https://github.com/user-attachments/assets/5c87879a-7d92-4acd-8fea-54ed20e9abf6)
-![手机ui图2](https://github.com/user-attachments/assets/eb28b4b1-4ff2-490d-a03f-da8f6b5f4aa0)
+![电脑](https://github.com/user-attachments/assets/d4611747-876e-4640-b9ff-ae9317390a7d)
+![手机](https://github.com/user-attachments/assets/2b81bb5e-10bf-400e-9e2c-17e43ec07a47)
+
