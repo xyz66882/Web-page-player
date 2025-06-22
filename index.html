@@ -10,6 +10,10 @@
   <!-- HLS.js 和 FLV.js 库 -->
   <script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-0-y/hls.js/8.0.0-beta.3/hls.js"></script>
   <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-0-y/flv.js/1.6.2/flv.js"></script>
+  <!-- xgplayer 和 xgplayer-flv 库 -->
+  <link rel="stylesheet" href="https://unpkg.byted-static.com/xgplayer/3.0.21/dist/index.min.css"/>
+  <script charset="utf-8" src="https://unpkg.byted-static.com/xgplayer/3.0.21/dist/index.min.js"></script>
+  <script charset="utf-8" src="https://unpkg.byted-static.com/xgplayer-flv/3.0.21/dist/index.min.js"></script>
 
   <style>
     /* 全局样式 */
@@ -300,7 +304,9 @@
       z-index: 9999; /* 确保在最顶层 */
     }
 
-    #videoPlayer {
+    /* 确保原生 video 和 xgplayer 容器都绝对定位并填充 */
+    #videoPlayer,
+    #xgplayerContainer {
       position: absolute;
       top: 0;
       left: 0;
@@ -311,8 +317,9 @@
       transition: transform 0.1s ease-out, filter 0.1s ease-out;
     }
 
-    .video-container.fullscreen-active #videoPlayer {
-      position: static;
+    .video-container.fullscreen-active #videoPlayer,
+    .video-container.fullscreen-active #xgplayerContainer {
+      position: static; /* 全屏时取消绝对定位，让其自适应 */
       width: 100%;
       height: 100%;
       object-fit: contain;
@@ -821,7 +828,6 @@
         justify-content: space-between; /* 保持图标/文字组和关闭按钮两端对齐 */
     }
 
-
     .drawer-header .close-btn {
       background: none;
       border: none;
@@ -1319,7 +1325,6 @@
       text-overflow: ellipsis; /* 溢出文本显示省略号 */
     }
 
-
     /* 响应式设计 */
     @media (max-width: 1024px) {
       #app-container {
@@ -1509,7 +1514,7 @@
         min-width: 40px; /* 确保时间显示完整 */
       }
       #topPlayerControls .volume-slider {
-        width: 50px; /* 进一步缩小音量条 */
+        width: 60px;
       }
       #topPlayerControls #volumePercentageDisplay {
         min-width: 30px; /* 适应更小的音量百分比显示 */
@@ -1553,7 +1558,6 @@
         font-size: 10px; /* 进一步缩小字体 */
         min-width: 20px;
       }
-
 
       /* 输入组和文件上传按钮 */
       .input-group,
@@ -1670,7 +1674,11 @@
 
         <!-- 视频播放器容器，默认隐藏 -->
         <div class="video-container" id="videoContainer">
-          <video id="videoPlayer"></video> <!-- 移除 controls 属性和 crossorigin="anonymous" -->
+          <!-- 原生 video 标签，用于 HLS, FLV.js, 原生 MP4 等 -->
+          <video id="videoPlayer"></video>
+          <!-- xgplayer 容器，默认隐藏，用于 FLV 直播等特殊场景 -->
+          <div id="xgplayerContainer" style="display: none;"></div>
+
           <div id="subtitleDisplay" class="subtitle-display" style="display: none;"></div>
 
           <!-- 视频内部控制条 -->
@@ -1926,6 +1934,13 @@
     // ====================================================================
     let hlsInstance = null;
     let flvPlayer = null;
+    let xgPlayerInstance = null; // 新增 xgplayer 实例
+
+    let nativeVideoPlayer = null; // 引用原生的 <video> 元素
+    let xgplayerContainerElement = null; // 引用 xgplayer 的 div 容器
+    let activePlayer = null; // 当前活跃的播放器 API (可能是 nativeVideoPlayer 或 xgPlayerInstance)
+    let currentPlayingMethod = 'none'; // 'none', 'native', 'hls', 'flvjs', 'xgplayer'
+
     let currentVideoUrl = null; // 当前播放视频的URL (可以是网络URL或blob:URL)
     let currentLocalFileObject = null; // 存储当前播放的本地文件对象
     let currentLocalFileName = null; // 存储当前播放的本地文件名
@@ -1988,7 +2003,7 @@
     let backgroundSettings = JSON.parse(localStorage.getItem('backgroundSettings')) || { ...defaultBackgroundSettings };
 
     // 播放器DOM元素引用 (使用 let 声明，方便在 DOMContentLoaded 中赋值)
-    let videoPlayer, playPauseBtn, playPauseIcon,
+    let playPauseBtn,
         uploadPlaceholder, videoContainerElement,
         seekSlider, currentTimeDisplay, durationDisplay,
         volumeSlider, volumeIcon, muteButtonIcon, volumePercentageDisplay,
@@ -2012,7 +2027,10 @@
     // ====================================================================
     document.addEventListener('DOMContentLoaded', function () {
       // 获取DOM元素引用
-      videoPlayer = document.getElementById('videoPlayer');
+      nativeVideoPlayer = document.getElementById('videoPlayer'); // 原生 video 元素
+      xgplayerContainerElement = document.getElementById('xgplayerContainer'); // xgplayer 容器
+      activePlayer = nativeVideoPlayer; // 初始活跃播放器为原生 video
+
       playPauseBtn = document.getElementById('playPauseBtn');
       playPauseIcon = playPauseBtn.querySelector('i');
       uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -2210,7 +2228,8 @@
       document.addEventListener('keydown', handleKeyDown);
 
       // 绑定视频双击事件
-      videoPlayer.addEventListener('dblclick', toggleFullscreen);
+      nativeVideoPlayer.addEventListener('dblclick', toggleFullscreen); // 双击原生视频全屏
+      // xgplayer 内部的双击事件由其自身处理，或者可以监听 xgplayer 的 dblclick 事件
 
       // 绑定循环模式按钮事件
       document.querySelector('.history-loop-controls').addEventListener('click', (e) => {
@@ -2236,7 +2255,8 @@
         videoContainerElement.addEventListener('mousemove', showControls);
         videoContainerElement.addEventListener('mouseleave', resetHideTimer);
         // PC端点击视频区域播放/暂停
-        videoPlayer.addEventListener('click', togglePlayPause);
+        nativeVideoPlayer.addEventListener('click', togglePlayPause); // 点击原生视频播放/暂停
+        // xgplayer 会有自己的点击播放/暂停行为，或者可以通过 xgplayerInstance.on('click', togglePlayPause) 绑定
 
         // 确保在控制条元素上移动鼠标也能保持显示
         inVideoControls.addEventListener('mousemove', showControls);
@@ -2261,12 +2281,14 @@
       }
 
       // 视频播放时显示控制条并启动计时器
-      videoPlayer.addEventListener('play', function() {
+      // 这里监听的是原生 videoPlayer 的 play 事件，xgplayer 播放时需要单独监听其 play 事件
+      nativeVideoPlayer.addEventListener('play', function() {
         showControls();
       });
 
       // 视频暂停时保持控制条显示，停止计时器
-      videoPlayer.addEventListener('pause', function() {
+      // 这里监听的是原生 videoPlayer 的 pause 事件，xgplayer 播放时需要单独监听其 pause 事件
+      nativeVideoPlayer.addEventListener('pause', function() {
         clearTimeout(controlsHideTimeout);
         inVideoControls.classList.add('controls-visible');
       });
@@ -2297,13 +2319,12 @@
     function resetHideTimer() {
       clearTimeout(controlsHideTimeout);
       // 只有在视频播放且不是暂停状态时才启动自动隐藏
-      if (!videoPlayer.paused && window.innerWidth > 768) { // 桌面端才自动隐藏
+      if (activePlayer && !activePlayer.paused && window.innerWidth > 768) { // 桌面端才自动隐藏
         controlsHideTimeout = setTimeout(hideControls, controlsVisibleDuration);
-      } else if (!videoPlayer.paused && window.innerWidth <= 768) { // 移动端也自动隐藏，但通过点击触发
+      } else if (activePlayer && !activePlayer.paused && window.innerWidth <= 768) { // 移动端也自动隐藏，但通过点击触发
         controlsHideTimeout = setTimeout(hideControls, controlsVisibleDuration);
       }
     }
-
 
     /**
      * 处理点击事件，用于关闭侧边抽屉面板。
@@ -2342,7 +2363,6 @@
             if (window.innerWidth > 768) { // 桌面端
                 resetHideTimer(); // 启动自动隐藏计时器
             } else { // 移动端
-                // 移动端在点击后会再次触发 showControls，这里不需要额外处理
                 // 如果控制条当前可见，也启动隐藏计时器
                 if (inVideoControls.classList.contains('controls-visible')) {
                     resetHideTimer();
@@ -2539,21 +2559,33 @@
      * 应用视频画面变换。
      */
     function applyVideoTransformations() {
-      if (!videoPlayer) return;
-      videoPlayer.style.transform = `rotate(${transformSettings.rotate}deg) scaleX(${transformSettings.scaleX}) scaleY(${transformSettings.scaleY}) scale(${transformSettings.zoom / 100})`;
+      // 应用到原生 video 元素
+      if (nativeVideoPlayer && currentPlayingMethod !== 'xgplayer') {
+          nativeVideoPlayer.style.transform = `rotate(${transformSettings.rotate}deg) scaleX(${transformSettings.scaleX}) scaleY(${transformSettings.scaleY}) scale(${transformSettings.zoom / 100})`;
+      }
+      // 应用到 xgplayer 内部的 video 元素
+      if (xgPlayerInstance && xgPlayerInstance.video && currentPlayingMethod === 'xgplayer') {
+          xgPlayerInstance.video.style.transform = `rotate(${transformSettings.rotate}deg) scaleX(${transformSettings.scaleX}) scaleY(${transformSettings.scaleY}) scale(${transformSettings.zoom / 100})`;
+      }
     }
 
     /**
      * 应用视频滤镜。
      */
     function applyVideoFilters() {
-      if (!videoPlayer) return;
       let filterStyle = `brightness(${filterSettings.brightness}%) contrast(${filterSettings.contrast}%) saturate(${filterSettings.saturation}%)`;
       if (filterSettings.sharpen > 0 && filterSettings.sharpen <= 10) {
         // 使用 SVG 滤镜进行锐化
         filterStyle += ` url(#sharpen-filter-${filterSettings.sharpen})`;
       }
-      videoPlayer.style.filter = filterStyle;
+      // 应用到原生 video 元素
+      if (nativeVideoPlayer && currentPlayingMethod !== 'xgplayer') {
+          nativeVideoPlayer.style.filter = filterStyle;
+      }
+      // 应用到 xgplayer 内部的 video 元素
+      if (xgPlayerInstance && xgPlayerInstance.video && currentPlayingMethod === 'xgplayer') {
+          xgPlayerInstance.video.style.filter = filterStyle;
+      }
     }
 
     /**
@@ -2602,7 +2634,7 @@
      * 创建锐化滤镜的 SVG 元素。
      */
     function createSharpenSVGElements() {
-      const svgNS = "http://www.w3.org/2000/svg"; // 注意：SVG命名空间是http://，不是https://
+      const svgNS = "http://www.w3.org/2000/svg";
       let svgContainer = document.getElementById('sharpen-svg-filters');
 
       svgContainer.innerHTML = ''; // 清空现有滤镜，防止重复添加
@@ -2701,55 +2733,98 @@
      * 设置播放器事件监听。
      */
     function setupPlayerEvents() {
-      videoPlayer.addEventListener('timeupdate', function () {
-        if (!isSeeking) {
-          seekSlider.value = videoPlayer.currentTime;
-          inVideoSeekSlider.value = videoPlayer.currentTime; // 更新视频内部进度条
-        }
-        currentTimeDisplay.textContent = formatTime(videoPlayer.currentTime);
-        inVideoCurrentTimeDisplay.textContent = formatTime(videoPlayer.currentTime); // 更新视频内部时间
+        // 这些事件监听器绑定到 nativeVideoPlayer，当 xgplayer 活跃时，其自身的事件会更新 UI
+        nativeVideoPlayer.addEventListener('timeupdate', function () {
+            if (currentPlayingMethod !== 'xgplayer' && !isSeeking) {
+                seekSlider.value = nativeVideoPlayer.currentTime;
+                inVideoSeekSlider.value = nativeVideoPlayer.currentTime;
+            }
+            if (currentPlayingMethod !== 'xgplayer') {
+                currentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
+                inVideoCurrentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
+            }
 
-        if (subtitleActive && currentSubtitleTracks.length > 0) {
-          updateSubtitleDisplay(this.currentTime);
-        } else {
-          subtitleDisplay.textContent = '';
-          subtitleDisplay.style.display = 'none';
-        }
-      });
+            if (subtitleActive && currentSubtitleTracks.length > 0) {
+                updateSubtitleDisplay(this.currentTime);
+            } else {
+                subtitleDisplay.textContent = '';
+                subtitleDisplay.style.display = 'none';
+            }
+        });
 
-      videoPlayer.addEventListener('loadedmetadata', function() {
-        seekSlider.max = videoPlayer.duration;
-        inVideoSeekSlider.max = videoPlayer.duration; // 更新视频内部进度条最大值
-        durationDisplay.textContent = formatTime(videoPlayer.duration);
-        inVideoDurationDisplay.textContent = formatTime(videoPlayer.duration); // 更新视频内部总时长
-        currentTimeDisplay.textContent = formatTime(videoPlayer.currentTime);
-        inVideoCurrentTimeDisplay.textContent = formatTime(videoPlayer.currentTime); // 更新视频内部时间
-      });
+        nativeVideoPlayer.addEventListener('loadedmetadata', function() {
+            if (currentPlayingMethod !== 'xgplayer') {
+                seekSlider.max = nativeVideoPlayer.duration;
+                inVideoSeekSlider.max = nativeVideoPlayer.duration;
+                durationDisplay.textContent = formatTime(nativeVideoPlayer.duration);
+                inVideoDurationDisplay.textContent = formatTime(nativeVideoPlayer.duration);
+                currentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
+                inVideoCurrentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
+            }
+        });
 
-      videoPlayer.addEventListener('play', function () {
-        updateStatus('playing', `正在播放 (${videoPlayer.playbackRate}x)`);
-        playPauseIcon.className = 'fas fa-pause';
-        inVideoPlayPauseIcon.className = 'fas fa-pause'; // 更新视频内部按钮
-        uploadPlaceholder.classList.add('hidden');
-        videoContainerElement.classList.add('visible');
-      });
+        nativeVideoPlayer.addEventListener('play', function () {
+            if (currentPlayingMethod !== 'xgplayer') {
+                updateStatus('playing', `正在播放 (${nativeVideoPlayer.playbackRate}x)`);
+                playPauseIcon.className = 'fas fa-pause';
+                inVideoPlayPauseIcon.className = 'fas fa-pause';
+                uploadPlaceholder.classList.add('hidden');
+                videoContainerElement.classList.add('visible');
+                resetHideTimer();
+            }
+        });
 
-      videoPlayer.addEventListener('pause', function () {
-        updateStatus('stopped', '播放已暂停');
-        playPauseIcon.className = 'fas fa-play';
-        inVideoPlayPauseIcon.className = 'fas fa-play'; // 更新视频内部按钮
-      });
+        nativeVideoPlayer.addEventListener('pause', function () {
+            if (currentPlayingMethod !== 'xgplayer') {
+                updateStatus('stopped', '播放已暂停');
+                playPauseIcon.className = 'fas fa-play';
+                inVideoPlayPauseIcon.className = 'fas fa-play';
+                clearTimeout(controlsHideTimeout);
+                inVideoControls.classList.add('controls-visible');
+            }
+        });
 
-      videoPlayer.addEventListener('waiting', function () {
-        updateStatus('loading', '正在缓冲...');
-      });
+        nativeVideoPlayer.addEventListener('waiting', function () {
+            if (currentPlayingMethod !== 'xgplayer') {
+                updateStatus('loading', '正在缓冲...');
+            }
+        });
 
-      videoPlayer.addEventListener('ended', function () {
+        nativeVideoPlayer.addEventListener('ended', handleVideoEnded);
+
+        nativeVideoPlayer.addEventListener('error', handleVideoError);
+
+        // 进度条拖动事件 (PC端)
+        seekSlider.addEventListener('mousedown', handleSeekStart);
+        seekSlider.addEventListener('mouseup', handleSeekEnd);
+        inVideoSeekSlider.addEventListener('mousedown', handleSeekStart);
+        inVideoSeekSlider.addEventListener('mouseup', handleSeekEnd);
+
+        // 进度条拖动事件 (移动端)
+        seekSlider.addEventListener('touchstart', handleSeekStart);
+        seekSlider.addEventListener('touchend', handleSeekEnd);
+        inVideoSeekSlider.addEventListener('touchstart', handleSeekStart);
+        inVideoSeekSlider.addEventListener('touchend', handleSeekEnd);
+
+        seekSlider.addEventListener('input', function() {
+            currentTimeDisplay.textContent = formatTime(this.value);
+            inVideoSeekSlider.value = this.value; // 同步视频内部进度条
+            inVideoCurrentTimeDisplay.textContent = formatTime(this.value); // 同步视频内部时间
+        });
+        inVideoSeekSlider.addEventListener('input', function() {
+            inVideoCurrentTimeDisplay.textContent = formatTime(this.value);
+            seekSlider.value = this.value; // 同步外部进度条
+            currentTimeDisplay.textContent = formatTime(this.value); // 同步外部时间
+        });
+    }
+
+    // Common handler for video ended event
+    function handleVideoEnded() {
         updateStatus('stopped', '播放已结束');
         // 检查循环模式
         if (currentLoopMode === 'single') {
-            videoPlayer.currentTime = 0;
-            videoPlayer.play();
+            activePlayer.currentTime = 0;
+            activePlayer.play();
             updateStatus('playing', '单曲循环中...');
         } else if (currentLoopMode === 'list') {
             if (playbackHistory.length > 0 && currentPlayingHistoryIndex !== -1) {
@@ -2757,40 +2832,40 @@
                 playFromHistory(currentPlayingHistoryIndex);
                 updateStatus('playing', `列表循环中，播放下一项: ${playbackHistory[currentPlayingHistoryIndex].title}`);
             } else {
-                // Fallback if history is empty or index is invalid
-                videoPlayer.currentTime = videoPlayer.duration;
-                videoPlayer.pause();
+                activePlayer.currentTime = activePlayer.duration;
+                activePlayer.pause();
             }
         } else if (currentLoopMode === 'shuffle') {
             if (playbackHistory.length > 0) {
                 let nextIndex;
                 do {
                     nextIndex = Math.floor(Math.random() * playbackHistory.length);
-                } while (playbackHistory.length > 1 && nextIndex === currentPlayingHistoryIndex); // Avoid playing same video again if more than one exists
+                } while (playbackHistory.length > 1 && nextIndex === currentPlayingHistoryIndex);
 
                 currentPlayingHistoryIndex = nextIndex;
                 playFromHistory(currentPlayingHistoryIndex);
                 updateStatus('playing', `随机播放中，播放: ${playbackHistory[currentPlayingHistoryIndex].title}`);
             } else {
-                videoPlayer.currentTime = videoPlayer.duration;
-                videoPlayer.pause();
+                activePlayer.currentTime = activePlayer.duration;
+                activePlayer.pause();
             }
         } else {
             // Default behavior (no loop)
-            videoPlayer.currentTime = videoPlayer.duration;
-            videoPlayer.pause(); // 立即暂停
-            videoPlayer.currentTime = videoPlayer.duration; // 精确设置到最后一帧
-            seekSlider.value = videoPlayer.duration;
-            inVideoSeekSlider.value = videoPlayer.duration; // 更新视频内部进度条
-            currentTimeDisplay.textContent = formatTime(videoPlayer.duration);
-            inVideoCurrentTimeDisplay.textContent = formatTime(videoPlayer.duration); // 更新视频内部时间
+            activePlayer.currentTime = activePlayer.duration;
+            activePlayer.pause(); // 立即暂停
+            activePlayer.currentTime = activePlayer.duration; // 精确设置到最后一帧
+            seekSlider.value = activePlayer.duration;
+            inVideoSeekSlider.value = activePlayer.duration;
+            currentTimeDisplay.textContent = formatTime(activePlayer.duration);
+            inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.duration);
             playPauseIcon.className = 'fas fa-play';
             inVideoPlayPauseIcon.className = 'fas fa-play';
         }
-      });
+    }
 
-      videoPlayer.addEventListener('error', function () {
-        const error = this.error;
+    // Common handler for video error event
+    function handleVideoError(err) {
+        const error = err || (activePlayer && activePlayer.error); // For xgplayer, error object might be passed directly
         let errorMessage = '未知错误';
         if (error) {
           switch (error.code) {
@@ -2807,70 +2882,56 @@
               errorMessage = '视频源格式不受支持或文件损坏。';
               break;
             default:
-              errorMessage = `错误代码: ${error.code} - ${error.message}`;
+              errorMessage = `错误代码: ${error.code} - ${error.message || error.msg || ''}`; // xgplayer might have 'msg'
               break;
           }
         }
         console.error('播放错误:', error);
         updateStatus('stopped', '播放错误: ' + errorMessage);
         playPauseIcon.className = 'fas fa-play';
-        inVideoPlayPauseIcon.className = 'fas fa-play'; // 更新视频内部按钮
+        inVideoPlayPauseIcon.className = 'fas fa-play';
         currentLocalFileObject = null;
         uploadPlaceholder.classList.remove('hidden');
         videoContainerElement.classList.remove('visible');
-        // 不清空 videoURL 输入框，以便用户修改后重试
-        // document.getElementById('videoURL').value = '';
-      });
+    }
 
-      // 进度条拖动事件 (PC端)
-      seekSlider.addEventListener('mousedown', handleSeekStart);
-      seekSlider.addEventListener('mouseup', handleSeekEnd);
-      inVideoSeekSlider.addEventListener('mousedown', handleSeekStart); // 视频内部进度条
-      inVideoSeekSlider.addEventListener('mouseup', handleSeekEnd); // 视频内部进度条
-
-      // 进度条拖动事件 (移动端)
-      seekSlider.addEventListener('touchstart', handleSeekStart);
-      seekSlider.addEventListener('touchend', handleSeekEnd);
-      inVideoSeekSlider.addEventListener('touchstart', handleSeekStart); // 视频内部进度条
-      inVideoSeekSlider.addEventListener('touchend', handleSeekEnd); // 视频内部进度条
-
-      function handleSeekStart() {
+    function handleSeekStart() {
         isSeeking = true;
-        wasPlayingBeforeSeek = !videoPlayer.paused; // 记录拖动前是否在播放
-        videoPlayer.pause();
-      }
+        wasPlayingBeforeSeek = !activePlayer.paused; // 记录拖动前是否在播放
+        activePlayer.pause();
+    }
 
-      function handleSeekEnd() {
+    function handleSeekEnd() {
         isSeeking = false;
         const targetTime = parseFloat(this.value); // 使用触发事件的滑块的值
         const wasPlaying = wasPlayingBeforeSeek; // 捕获本地变量
 
         // 确保移除所有旧的 seeked 监听器，防止重复触发
-        videoPlayer.removeEventListener('seeked', onSeekedResumePlayback);
+        if (currentPlayingMethod === 'xgplayer') {
+            activePlayer.off('seeked', onSeekedResumePlayback);
+        } else {
+            nativeVideoPlayer.removeEventListener('seeked', onSeekedResumePlayback);
+        }
 
-        videoPlayer.currentTime = targetTime;
-
-        // 添加一个针对当前 seek 操作的新的 seeked 监听器
-        videoPlayer.addEventListener('seeked', onSeekedResumePlayback);
+        activePlayer.currentTime = targetTime;
 
         function onSeekedResumePlayback() {
-          videoPlayer.removeEventListener('seeked', onSeekedResumePlayback); // 执行后移除自身
-          if (wasPlaying) {
-            videoPlayer.play().catch(e => console.error("Error playing after seeked:", e));
-          }
+            if (currentPlayingMethod === 'xgplayer') {
+                activePlayer.off('seeked', onSeekedResumePlayback);
+            } else {
+                nativeVideoPlayer.removeEventListener('seeked', onSeekedResumePlayback);
+            }
+            if (wasPlaying) {
+                activePlayer.play().catch(e => console.error("Error playing after seeked:", e));
+            }
         }
-      }
 
-      seekSlider.addEventListener('input', function() {
-        currentTimeDisplay.textContent = formatTime(this.value);
-        inVideoSeekSlider.value = this.value; // 同步视频内部进度条
-        inVideoCurrentTimeDisplay.textContent = formatTime(this.value); // 同步视频内部时间
-      });
-      inVideoSeekSlider.addEventListener('input', function() {
-        inVideoCurrentTimeDisplay.textContent = formatTime(this.value);
-        seekSlider.value = this.value; // 同步外部进度条
-        currentTimeDisplay.textContent = formatTime(this.value); // 同步外部时间
-      });
+        // 添加一个针对当前 seek 操作的新的 seeked 监听器
+        if (currentPlayingMethod === 'xgplayer') {
+            activePlayer.on('seeked', onSeekedResumePlayback);
+        } else {
+            nativeVideoPlayer.addEventListener('seeked', onSeekedResumePlayback);
+        }
     }
 
     /**
@@ -2893,13 +2954,14 @@
      * 设置外部音量控制。
      */
     function setupVolumeControl() {
-      videoPlayer.volume = volumeSlider.value / 100;
+      // 初始音量设置应在播放器加载后进行，这里只绑定事件
       volumePercentageDisplay.textContent = `${volumeSlider.value}%`; // 初始化音量百分比
       updateMuteButtonIcon();
 
       volumeSlider.addEventListener('input', function () {
+        if (!activePlayer) return; // 确保 activePlayer 已定义
         const volume = this.value / 100;
-        videoPlayer.volume = volume;
+        activePlayer.volume = volume;
         volumePercentageDisplay.textContent = `${this.value}%`; // 更新音量百分比
         inVideoVolumeSlider.value = this.value; // 同步视频内部音量滑块
         inVideoVolumePercentageDisplay.textContent = `${this.value}%`; // 同步视频内部音量百分比
@@ -2926,8 +2988,9 @@
         inVideoVolumePercentageDisplay.textContent = `${inVideoVolumeSlider.value}%`;
 
         inVideoVolumeSlider.addEventListener('input', function() {
+            if (!activePlayer) return; // 确保 activePlayer 已定义
             const volume = this.value / 100;
-            videoPlayer.volume = volume;
+            activePlayer.volume = volume;
             inVideoVolumePercentageDisplay.textContent = `${this.value}%`;
             volumeSlider.value = this.value; // 同步外部音量滑块
             volumePercentageDisplay.textContent = `${this.value}%`; // 同步外部音量百分比
@@ -3009,7 +3072,9 @@
       localStorage.setItem('subtitleSettings', JSON.stringify(currentSubtitleSettings));
       localStorage.setItem('transformSettings', JSON.stringify(transformSettings));
       localStorage.setItem('filterSettings', JSON.stringify(filterSettings));
-      localStorage.setItem('playbackRate', videoPlayer.playbackRate || 1.0);
+      if (activePlayer) { // 只有当 activePlayer 存在时才保存播放速度
+        localStorage.setItem('playbackRate', activePlayer.playbackRate || 1.0);
+      }
       localStorage.setItem('backgroundSettings', JSON.stringify(backgroundSettings));
       localStorage.setItem('loopMode', currentLoopMode); // 保存循环模式
     }
@@ -3031,7 +3096,7 @@
         Object.assign(transformSettings, JSON.parse(savedTransformSettings));
         zoomSlider.value = transformSettings.zoom;
         zoomValueSpan.textContent = `${transformSettings.zoom}%`;
-        applyVideoTransformations();
+        applyVideoTransformations(); // 初始应用变换
       }
 
       // 加载滤镜设置
@@ -3039,7 +3104,7 @@
       if (savedFilterSettings) {
         Object.assign(filterSettings, JSON.parse(savedFilterSettings));
         updateFilterSlidersUI();
-        applyVideoFilters();
+        applyVideoFilters(); // 初始应用滤镜
         // 检查是否与预设匹配，并激活相应按钮
         let matchedPreset = false;
         for (const presetKey in filterPresets) {
@@ -3057,12 +3122,15 @@
         if (!matchedPreset) clearActiveFilterPreset();
       }
 
-      // 加载播放速度
+      // 加载播放速度 (仅更新按钮UI，实际播放速度在视频加载时设置)
       const savedPlaybackRate = localStorage.getItem('playbackRate');
       if (savedPlaybackRate) {
-        changeSpeed(parseFloat(savedPlaybackRate), document.querySelector(`#speedBtnGroup .btn[data-speed="${savedPlaybackRate}"]`));
+        const speedBtn = document.querySelector(`#speedBtnGroup .btn[data-speed="${savedPlaybackRate}"]`);
+        if (speedBtn) {
+            speedBtn.classList.add('active-speed-btn');
+        }
       } else {
-        changeSpeed(1.0, document.querySelector(`#speedBtnGroup .btn[data-speed="1"]`));
+        document.querySelector(`#speedBtnGroup .btn[data-speed="1"]`).classList.add('active-speed-btn');
       }
 
       // 加载背景设置
@@ -3096,11 +3164,11 @@
      * 切换播放/暂停状态。
      */
     function togglePlayPause() {
-      if (videoPlayer.src) {
-        if (videoPlayer.paused) {
-          videoPlayer.play();
+      if (activePlayer) {
+        if (activePlayer.paused) {
+          activePlayer.play();
         } else {
-          videoPlayer.pause();
+          activePlayer.pause();
         }
       } else {
         alert('请先加载视频！');
@@ -3121,8 +3189,8 @@
             alert('本地视频文件已丢失，请重新选择或上传。');
             document.getElementById('videoURL').value = '';
             stopPlaybackInternal(false);
-        } else if (inputUrl) {
-            play(inputUrl);
+        } else if (currentVideoUrl) { // 使用 currentVideoUrl 重新播放
+            play(currentVideoUrl);
         } else {
             alert('请输入视频URL或点击“上传本地视频”按钮选择文件以重新加载。');
         }
@@ -3140,9 +3208,14 @@
         return;
       }
 
-      if (videoPlayer.src && videoPlayer.src.startsWith('blob:')) {
-        URL.revokeObjectURL(videoPlayer.src);
-      }
+      // 停止并清理所有播放器
+      stopPlaybackInternal(true);
+
+      // 设置为原生播放模式
+      currentPlayingMethod = 'native';
+      nativeVideoPlayer.style.display = 'block'; // 显示原生视频播放器
+      xgplayerContainerElement.style.display = 'none'; // 隐藏 xgplayer 容器
+      activePlayer = nativeVideoPlayer; // 设置活跃播放器为原生视频
 
       currentLocalFileObject = file;
       currentLocalFileName = file.name;
@@ -3150,12 +3223,25 @@
 
       document.getElementById('videoURL').value = `本地文件: ${file.name}`;
 
-      stopPlaybackInternal(true); // 停止当前播放，保持占位符隐藏
-
       currentVideoUrl = fileURL;
-      play(fileURL, true); // 标记为本地文件播放
+      nativeVideoPlayer.src = fileURL; // 设置原生播放器源
+      nativeVideoPlayer.currentTime = 0.01;
+      nativeVideoPlayer.play().catch((e) => {
+        console.error('本地视频播放错误:', e);
+        updateStatus('stopped', '播放错误: ' + e.message);
+        uploadPlaceholder.classList.remove('hidden');
+        videoContainerElement.classList.remove('visible');
+      });
 
-      // 添加到历史记录，并设置 currentPlayingHistoryIndex
+      // 应用保存的播放速度
+      const savedPlaybackRate = localStorage.getItem('playbackRate');
+      if (savedPlaybackRate) {
+          activePlayer.playbackRate = parseFloat(savedPlaybackRate);
+      } else {
+          activePlayer.playbackRate = 1.0;
+      }
+
+      // 添加到历史记录
       const historyItem = {
           title: `本地文件: ${file.name}`,
           url: fileURL,
@@ -3164,7 +3250,6 @@
           timestamp: new Date().toISOString(),
       };
       addToHistory(historyItem);
-      // 当播放本地文件时，如果它被添加到历史记录的开头，则其索引为0
       currentPlayingHistoryIndex = 0;
 
       updateStatus('playing', `正在播放: ${file.name}`);
@@ -3185,140 +3270,257 @@
       uploadPlaceholder.classList.add('hidden');
       videoContainerElement.classList.add('visible');
 
-      applyVideoTransformations();
-      applyVideoFilters();
-
-      if (url.startsWith('blob:')) {
-        videoPlayer.src = url;
-        videoPlayer.currentTime = 0.01;
-        videoPlayer.play().catch((e) => {
-          console.error('本地视频播放错误:', e);
-          updateStatus('stopped', '播放错误: ' + e.message);
-          uploadPlaceholder.classList.remove('hidden');
-          videoContainerElement.classList.remove('visible');
-        });
-        return;
-      }
-
-      if (url.indexOf('rtmp://') === 0) {
-        alert('当前浏览器不支持 RTMP 协议播放，请尝试其他视频格式！');
-        updateStatus('stopped', '不支持RTMP协议');
-        uploadPlaceholder.classList.remove('hidden');
-        videoContainerElement.classList.remove('visible');
-        return;
-      }
-
       const extension = getFileExtension(url);
+      const isFlvStream = (extension === 'flv' || url.includes('.flv'));
+      const isM3U8Stream = (extension === 'm3u8' || url.includes('.m3u8'));
+      // 这是一个启发式判断，用于识别类似用户提供示例的直播流
+      const isLiveStreamExample = url.includes('douyincdn.com') && isFlvStream;
 
-      if (extension === 'm3u8' || url.includes('.m3u8')) {
-        if (Hls.isSupported()) {
-          hlsInstance = new Hls();
-          hlsInstance.loadSource(url);
-          hlsInstance.attachMedia(videoPlayer);
-          hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
-            videoPlayer.currentTime = 0.01;
-            videoPlayer.play().catch((e) => {
-              console.error('HLS播放错误:', e);
-              updateStatus('stopped', '播放错误: ' + e.message);
-              uploadPlaceholder.classList.remove('hidden');
-              videoContainerElement.classList.remove('visible');
-            });
-          });
-          hlsInstance.on(Hls.Events.ERROR, function (event, data) {
-            console.error('HLS错误:', data);
-            updateStatus('stopped', 'HLS错误: ' + data.details);
-            uploadPlaceholder.classList.remove('hidden');
-            videoContainerElement.classList.remove('visible');
-          });
-        } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-          videoPlayer.src = url;
-          videoPlayer.currentTime = 0.01;
-          videoPlayer.play().catch((e) => {
-            console.error('原生HLS播放错误:', e);
-            updateStatus('stopped', '播放错误: ' + e.message);
-            uploadPlaceholder.classList.remove('hidden');
-            videoContainerElement.classList.remove('visible');
-          });
-        } else {
-          alert('当前浏览器不支持 HLS 视频播放！');
-          updateStatus('stopped', '不支持HLS播放');
-          uploadPlaceholder.classList.remove('hidden');
-          videoContainerElement.classList.remove('visible');
-          return;
-        }
-      }
-      else if (extension === 'flv' || url.includes('.flv')) {
-        if (flvjs.isSupported()) {
-          flvPlayer = flvjs.createPlayer({
-            type: 'flv',
-            url: url,
-          });
-          flvPlayer.attachMediaElement(videoPlayer);
-          flvPlayer.load();
-          videoPlayer.currentTime = 0.01;
-          flvPlayer.play().catch((e) => {
-            console.error('FLV播放错误:', e);
-            updateStatus('stopped', '播放错误: ' + e.message);
-            uploadPlaceholder.classList.remove('hidden');
-            videoContainerElement.classList.remove('visible');
-          });
-        } else {
-          alert('当前浏览器不支持 FLV 视频播放！');
-          updateStatus('stopped', '不支持FLV播放');
-          uploadPlaceholder.classList.remove('hidden');
-          videoContainerElement.classList.remove('visible');
-          return;
-        }
-      }
-      else {
-        // 对于普通视频文件，尝试直接播放
-        videoPlayer.src = url;
-        videoPlayer.currentTime = 0.01;
-        videoPlayer.play().catch((e) => {
-          console.error('原生播放错误:', e);
-          updateStatus('stopped', '播放失败，尝试其他方式...');
+      // 优先使用 xgplayer 处理 FLV 和特定的直播流
+      if (isFlvStream || isLiveStreamExample) {
+          currentPlayingMethod = 'xgplayer';
+          nativeVideoPlayer.style.display = 'none'; // 隐藏原生 video
+          xgplayerContainerElement.style.display = 'block'; // 显示 xgplayer 容器
 
-          // 如果原生播放失败，尝试使用HLS回退
-          if (Hls.isSupported()) {
-            updateStatus('loading', '尝试使用HLS播放...');
-            hlsInstance = new Hls();
-            hlsInstance.loadSource(url);
-            hlsInstance.attachMedia(videoPlayer);
-            hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
-              videoPlayer.currentTime = 0.01;
-              videoPlayer.play().catch((e) => {
-                console.error('HLS回退播放错误:', e);
-                updateStatus('stopped', '播放失败');
+          try {
+              // 销毁之前的 xgplayer 实例（如果有）
+              if (xgPlayerInstance) {
+                  xgPlayerInstance.destroy();
+                  xgPlayerInstance = null;
+              }
+
+              const xgplayerConfig = {
+                  id: 'xgplayerContainer', // 目标 div ID
+                  url: url,
+                  playsinline: true,
+                  fluid: true, // 响应式尺寸
+                  plugins: [FlvPlayer], // 使用 FlvPlayer 插件处理 FLV
+                  isLive: isLiveStreamExample, // 设置为 true 表示直播流
+                  controls: false, // 我们使用自定义控件，禁用 xgplayer 的默认控件
+                  autoplay: true, // 让 xgplayer 自动播放
+              };
+              xgPlayerInstance = new Player(xgplayerConfig);
+              activePlayer = xgPlayerInstance; // 设置活跃播放器为 xgplayer 实例
+
+              // 绑定 xgplayer 的事件到我们的通用 UI 更新函数
+              xgPlayerInstance.on('play', () => {
+                  updateStatus('playing', `正在播放 (${activePlayer.playbackRate}x)`);
+                  playPauseIcon.className = 'fas fa-pause';
+                  inVideoPlayPauseIcon.className = 'fas fa-pause';
+                  uploadPlaceholder.classList.add('hidden');
+                  videoContainerElement.classList.add('visible');
+                  resetHideTimer();
+              });
+              xgPlayerInstance.on('pause', () => {
+                  updateStatus('stopped', '播放已暂停');
+                  playPauseIcon.className = 'fas fa-play';
+                  inVideoPlayPauseIcon.className = 'fas fa-play';
+                  clearTimeout(controlsHideTimeout);
+                  inVideoControls.classList.add('controls-visible');
+              });
+              xgPlayerInstance.on('ended', handleVideoEnded);
+              xgPlayerInstance.on('error', handleVideoError);
+              xgPlayerInstance.on('timeupdate', () => {
+                  if (!isSeeking) {
+                      seekSlider.value = activePlayer.currentTime;
+                      inVideoSeekSlider.value = activePlayer.currentTime;
+                  }
+                  currentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
+                  inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
+
+                  if (subtitleActive && currentSubtitleTracks.length > 0) {
+                      updateSubtitleDisplay(activePlayer.currentTime);
+                  } else {
+                      subtitleDisplay.textContent = '';
+                      subtitleDisplay.style.display = 'none';
+                  }
+              });
+              xgPlayerInstance.on('volumechange', () => {
+                  // 同步音量滑块和图标
+                  volumeSlider.value = Math.round(activePlayer.volume * 100);
+                  inVideoVolumeSlider.value = Math.round(activePlayer.volume * 100);
+                  volumePercentageDisplay.textContent = `${volumeSlider.value}%`;
+                  inVideoVolumePercentageDisplay.textContent = `${inVideoVolumeSlider.value}%`;
+                  if (activePlayer.volume === 0) {
+                      volumeIcon.className = 'fas fa-volume-off';
+                      inVideoVolumeIcon.className = 'fas fa-volume-off';
+                  } else if (activePlayer.volume < 0.5) {
+                      volumeIcon.className = 'fas fa-volume-down';
+                      inVideoVolumeIcon.className = 'fas fa-volume-down';
+                  } else {
+                      volumeIcon.className = 'fas fa-volume-up';
+                      inVideoVolumeIcon.className = 'fas fa-volume-up';
+                  }
+                  updateMuteButtonIcon();
+              });
+              // xgplayer 有自己的全屏处理，我们将使用其 API 方法进行切换
+              // 并且监听 document 的 fullscreenchange 事件来处理样式更新
+
+              // 应用保存的播放速度
+              const savedPlaybackRate = localStorage.getItem('playbackRate');
+              if (savedPlaybackRate) {
+                  activePlayer.playbackRate = parseFloat(savedPlaybackRate);
+              } else {
+                  activePlayer.playbackRate = 1.0;
+              }
+              // 更新速度按钮 UI
+              document.querySelectorAll('#speedBtnGroup .btn').forEach(btn => btn.classList.remove('active-speed-btn'));
+              const activeSpeedBtn = document.querySelector(`#speedBtnGroup .btn[data-speed="${activePlayer.playbackRate}"]`);
+              if (activeSpeedBtn) {
+                  activeSpeedBtn.classList.add('active-speed-btn');
+              }
+
+              // 应用画面变换和滤镜到 xgplayer 内部的 video 元素
+              applyVideoTransformations();
+              applyVideoFilters();
+
+              xgPlayerInstance.play().catch(e => {
+                  console.warn("XGPlayer 自动播放被阻止:", e);
+                  updateStatus('stopped', '点击播放');
+                  playPauseIcon.className = 'fas fa-play';
+                  inVideoPlayPauseIcon.className = 'fas fa-play';
+              });
+
+          } catch (e) {
+              console.error('XGPlayer 初始化失败，尝试原生播放:', e);
+              // 如果 xgplayer 失败，则回退到原生播放
+              playWithNativePlayer(url, isM3U8Stream);
+          }
+      } else {
+          // 对于 HLS、MP4、WebM 等，使用原生播放器
+          playWithNativePlayer(url, isM3U8Stream);
+      }
+
+      // 添加到历史记录 (只有网络 URL 才添加到历史记录，本地视频已在 playLocalVideo 中添加)
+      if (!isLocalPlayback && !url.startsWith('blob:')) {
+          const historyItem = {
+              title: url, // 默认使用 URL 作为标题
+              url: url,
+              fileName: null,
+              type: 'remote',
+              timestamp: new Date().toISOString(),
+          };
+          addToHistory(historyItem);
+          currentPlayingHistoryIndex = 0;
+      }
+    }
+
+    // 辅助函数，用于处理原生/HLS/FLV.js 播放逻辑
+    function playWithNativePlayer(url, isM3U8Stream) {
+        currentPlayingMethod = 'native'; // 默认为原生
+        nativeVideoPlayer.style.display = 'block'; // 显示原生 video
+        xgplayerContainerElement.style.display = 'none'; // 隐藏 xgplayer 容器
+        activePlayer = nativeVideoPlayer; // 设置活跃播放器为原生
+
+        // 销毁之前的 HLS/FLV.js 实例
+        if (hlsInstance) {
+            hlsInstance.destroy();
+            hlsInstance = null;
+        }
+        if (flvPlayer) {
+            flvPlayer.destroy();
+            flvPlayer = null;
+        }
+
+        if (url.indexOf('rtmp://') === 0) {
+            alert('当前浏览器不支持 RTMP 协议播放，请尝试其他视频格式！');
+            updateStatus('stopped', '不支持RTMP协议');
+            uploadPlaceholder.classList.remove('hidden');
+            videoContainerElement.classList.remove('visible');
+            return;
+        }
+
+        if (isM3U8Stream) {
+            currentPlayingMethod = 'hls';
+            if (Hls.isSupported()) {
+                hlsInstance = new Hls();
+                hlsInstance.loadSource(url);
+                hlsInstance.attachMedia(nativeVideoPlayer);
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
+                    nativeVideoPlayer.currentTime = 0.01;
+                    nativeVideoPlayer.play().catch((e) => {
+                        console.error('HLS播放错误:', e);
+                        updateStatus('stopped', '播放错误: ' + e.message);
+                        uploadPlaceholder.classList.remove('hidden');
+                        videoContainerElement.classList.remove('visible');
+                    });
+                });
+                hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+                    console.error('HLS错误:', data);
+                    updateStatus('stopped', 'HLS错误: ' + data.details);
+                    uploadPlaceholder.classList.remove('hidden');
+                    videoContainerElement.classList.remove('visible');
+                });
+            } else if (nativeVideoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                nativeVideoPlayer.src = url;
+                nativeVideoPlayer.currentTime = 0.01;
+                nativeVideoPlayer.play().catch((e) => {
+                    console.error('原生HLS播放错误:', e);
+                    updateStatus('stopped', '播放错误: ' + e.message);
+                    uploadPlaceholder.classList.remove('hidden');
+                    videoContainerElement.classList.remove('visible');
+                });
+            } else {
+                alert('当前浏览器不支持 HLS 视频播放！');
+                updateStatus('stopped', '不支持HLS播放');
                 uploadPlaceholder.classList.remove('hidden');
                 videoContainerElement.classList.remove('visible');
-              });
+                return;
+            }
+        } else {
+            // 对于其他格式，尝试原生播放
+            nativeVideoPlayer.src = url;
+            nativeVideoPlayer.currentTime = 0.01;
+            nativeVideoPlayer.play().catch((e) => {
+                console.error('原生播放错误:', e);
+                updateStatus('stopped', '播放失败，尝试其他方式...');
+
+                // 如果原生播放失败，尝试使用 HLS 回退 (例如，对于一些 TS 流)
+                if (Hls.isSupported()) {
+                    updateStatus('loading', '尝试使用HLS播放...');
+                    hlsInstance = new Hls();
+                    hlsInstance.loadSource(url);
+                    hlsInstance.attachMedia(nativeVideoPlayer);
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
+                        nativeVideoPlayer.currentTime = 0.01;
+                        nativeVideoPlayer.play().catch((e) => {
+                            console.error('HLS回退播放错误:', e);
+                            updateStatus('stopped', '播放失败');
+                            uploadPlaceholder.classList.remove('hidden');
+                            videoContainerElement.classList.remove('visible');
+                        });
+                    });
+                    hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+                        console.error('HLS回退错误:', data);
+                        updateStatus('stopped', 'HLS回退错误: ' + data.details);
+                        uploadPlaceholder.classList.remove('hidden');
+                        videoContainerElement.classList.remove('visible');
+                    });
+                } else {
+                    updateStatus('stopped', '播放失败，浏览器不支持此格式。');
+                    uploadPlaceholder.classList.remove('hidden');
+                    videoContainerElement.classList.remove('visible');
+                }
             });
-            hlsInstance.on(Hls.Events.ERROR, function (event, data) {
-              console.error('HLS回退错误:', data);
-              updateStatus('stopped', 'HLS回退错误: ' + data.details);
-              uploadPlaceholder.classList.remove('hidden');
-              videoContainerElement.classList.remove('visible');
-            });
-          } else {
-            updateStatus('stopped', '播放失败，浏览器不支持此格式。');
-            uploadPlaceholder.classList.remove('hidden');
-            videoContainerElement.classList.remove('visible');
-          }
-        });
-      }
-      // 添加到历史记录 (只有网络URL才添加到历史记录，本地视频已在 playLocalVideo 中添加)
-      if (!isLocalPlayback && !url.startsWith('blob:')) {
-        const historyItem = {
-            title: url, // 默认使用URL作为标题
-            url: url,
-            fileName: null,
-            type: 'remote',
-            timestamp: new Date().toISOString(),
-        };
-        addToHistory(historyItem);
-        // 当播放新网络视频时，它被添加到历史记录的开头，则其索引为0
-        currentPlayingHistoryIndex = 0;
-      }
+        }
+
+        // 应用保存的播放速度
+        const savedPlaybackRate = localStorage.getItem('playbackRate');
+        if (savedPlaybackRate) {
+            activePlayer.playbackRate = parseFloat(savedPlaybackRate);
+        } else {
+            activePlayer.playbackRate = 1.0;
+        }
+        // 更新速度按钮 UI
+        document.querySelectorAll('#speedBtnGroup .btn').forEach(btn => btn.classList.remove('active-speed-btn'));
+        const activeSpeedBtn = document.querySelector(`#speedBtnGroup .btn[data-speed="${activePlayer.playbackRate}"]`);
+        if (activeSpeedBtn) {
+            activeSpeedBtn.classList.add('active-speed-btn');
+        }
+
+        // 应用画面变换和滤镜到原生播放器
+        applyVideoTransformations();
+        applyVideoFilters();
     }
 
     /**
@@ -3326,21 +3528,21 @@
      * @param {boolean} keepPlaceholderHidden - 是否保持占位符隐藏。
      */
     function stopPlaybackInternal(keepPlaceholderHidden = false) {
-      videoPlayer.pause();
-      if (videoPlayer.src && videoPlayer.src.startsWith('blob:')) {
-        URL.revokeObjectURL(videoPlayer.src);
+      // 停止当前活跃的播放器
+      if (activePlayer) {
+          activePlayer.pause();
+          // 如果是 blob URL，释放对象 URL
+          if (activePlayer.src && activePlayer.src.startsWith('blob:')) {
+              URL.revokeObjectURL(activePlayer.src);
+          }
+          // 如果不是 xgplayer，则清空原生 video 的 src
+          if (currentPlayingMethod !== 'xgplayer') {
+              activePlayer.removeAttribute('src');
+              activePlayer.load();
+          }
       }
-      videoPlayer.removeAttribute('src');
-      videoPlayer.load();
 
-      videoPlayer.currentTime = 0;
-      seekSlider.value = 0;
-      inVideoSeekSlider.value = 0; // 同步视频内部进度条
-      currentTimeDisplay.textContent = '00:00';
-      inVideoCurrentTimeDisplay.textContent = '00:00'; // 同步视频内部时间
-      durationDisplay.textContent = '00:00';
-      inVideoDurationDisplay.textContent = '00:00'; // 同步视频内部总时长
-
+      // 销毁 HLS.js 和 FLV.js 实例
       if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
@@ -3349,27 +3551,46 @@
         flvPlayer.destroy();
         flvPlayer = null;
       }
+      // 销毁 xgplayer 实例
+      if (xgPlayerInstance) {
+          xgPlayerInstance.destroy();
+          xgPlayerInstance = null;
+      }
+
+      // 重置 UI 元素
+      seekSlider.value = 0;
+      inVideoSeekSlider.value = 0;
+      currentTimeDisplay.textContent = '00:00';
+      inVideoCurrentTimeDisplay.textContent = '00:00';
+      durationDisplay.textContent = '00:00';
+      inVideoDurationDisplay.textContent = '00:00';
 
       currentVideoUrl = null;
-      currentPlayingHistoryIndex = -1; // 停止播放时重置历史索引
-
-      removeSubtitle(); // 清理字幕
+      currentPlayingHistoryIndex = -1;
+      removeSubtitle();
 
       updateStatus('stopped', '播放器已停止');
 
       if (!keepPlaceholderHidden) {
         uploadPlaceholder.classList.remove('hidden');
         videoContainerElement.classList.remove('visible');
-        // 只有当不保持占位符隐藏时才清空输入框和本地文件信息
         document.getElementById('videoURL').value = '';
         currentLocalFileObject = null;
         currentLocalFileName = null;
       }
 
+      // 确保两个播放器容器都隐藏
+      nativeVideoPlayer.style.display = 'none';
+      xgplayerContainerElement.style.display = 'none';
+
+      // 将活跃播放器重置为原生 video，以备下次播放
+      activePlayer = nativeVideoPlayer;
+      currentPlayingMethod = 'none';
+
       playPauseIcon.className = 'fas fa-play';
-      inVideoPlayPauseIcon.className = 'fas fa-play'; // 同步视频内部按钮
-      clearTimeout(controlsHideTimeout); // 停止播放时，清除自动隐藏计时器
-      inVideoControls.classList.add('controls-visible'); // 停止播放时，控制条保持显示
+      inVideoPlayPauseIcon.className = 'fas fa-play';
+      clearTimeout(controlsHideTimeout);
+      inVideoControls.classList.add('controls-visible');
     }
 
     /**
@@ -3528,7 +3749,9 @@
       subtitleActive = true;
       subtitleDisplay.style.display = 'block';
       subtitleDisplay.textContent = '';
-      updateSubtitleDisplay(videoPlayer.currentTime);
+      if (activePlayer) {
+        updateSubtitleDisplay(activePlayer.currentTime);
+      }
       applySubtitleSettings();
       updateToggleSubtitleButtonIcon();
     }
@@ -3564,7 +3787,9 @@
       subtitleActive = !subtitleActive;
 
       if (subtitleActive) {
-        updateSubtitleDisplay(videoPlayer.currentTime);
+        if (activePlayer) {
+            updateSubtitleDisplay(activePlayer.currentTime);
+        }
         subtitleDisplay.style.display = 'block';
       } else {
         subtitleDisplay.style.display = 'none';
@@ -3599,8 +3824,9 @@
       subtitleDisplay.textContent = '';
       subtitleDisplay.style.display = 'none';
 
-      for (let i = 0; i < videoPlayer.textTracks.length; i++) {
-        videoPlayer.textTracks[i].mode = 'disabled';
+      // 禁用原生 video 标签的字幕
+      for (let i = 0; i < nativeVideoPlayer.textTracks.length; i++) {
+        nativeVideoPlayer.textTracks[i].mode = 'disabled';
       }
 
       updateSubtitleSelectLabel(null);
@@ -3845,14 +4071,17 @@
       currentPlayingHistoryIndex = index; // 设置当前播放的历史记录索引
 
       if (item.type === 'local') {
-        if (currentLocalFileObject && currentLocalFileName === item.fileName) {
-            document.getElementById('videoURL').value = item.title; // 更新URL输入框显示
-            play(item.url, true); // 播放本地文件
+        // 检查本地文件是否仍然可用 (如果文件对象丢失，则无法播放)
+        // 这里的逻辑需要确保 currentLocalFileObject 确实是之前播放的那个文件
+        // 简单起见，如果 URL 是 blob: 且文件名匹配，则尝试播放
+        if (item.url.startsWith('blob:') && currentLocalFileObject && currentLocalFileName === item.fileName) {
+            document.getElementById('videoURL').value = item.title; // 更新 URL 输入框显示
+            playLocalVideo(currentLocalFileObject); // 播放本地文件
             return;
         }
         alert('本地视频文件已丢失，请重新上传。');
         document.getElementById('videoURL').value = '';
-        stopPlaybackInternal(false);
+        stopPlaybackInternal(false); // 停止并清理
       } else {
         document.getElementById('videoURL').value = item.url;
         play(item.url);
@@ -3892,71 +4121,88 @@
      * 切换全屏。
      */
     function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        if (videoContainerElement.requestFullscreen) {
-          videoContainerElement.requestFullscreen();
-        } else if (videoContainerElement.mozRequestFullScreen) {
-          videoContainerElement.mozRequestFullScreen();
-        } else if (videoContainerElement.webkitRequestFullscreen) {
-          videoContainerElement.webkitRequestFullscreen();
-        } else if (videoContainerElement.msRequestFullscreen) {
-          videoContainerElement.msRequestFullscreen();
+        if (!activePlayer) return;
+
+        if (document.fullscreenElement) {
+            // 当前处于全屏模式，退出全屏
+            if (currentPlayingMethod === 'xgplayer' && activePlayer.fullscreen) {
+                activePlayer.fullscreen.exit();
+            } else {
+                // 对于原生视频，退出文档全屏
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+            }
+        } else {
+            // 不处于全屏模式，请求全屏
+            if (currentPlayingMethod === 'xgplayer' && activePlayer.fullscreen) {
+                activePlayer.fullscreen.request();
+            } else {
+                // 对于原生视频，请求 videoContainerElement 全屏
+                if (videoContainerElement.requestFullscreen) {
+                    videoContainerElement.requestFullscreen();
+                } else if (videoContainerElement.mozRequestFullScreen) {
+                    videoContainerElement.mozRequestFullScreen();
+                } else if (videoContainerElement.webkitRequestFullscreen) {
+                    videoContainerElement.webkitRequestFullscreen();
+                } else if (videoContainerElement.msRequestFullscreen) {
+                    videoContainerElement.msRequestFullscreen();
+                }
+            }
         }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        }
-      }
     }
 
     /**
      * 更改播放速度。
      */
     function changeSpeed(speed, buttonElement) {
-      videoPlayer.playbackRate = speed;
-      document.querySelectorAll('#speedBtnGroup .btn').forEach(btn => btn.classList.remove('active-speed-btn'));
-      if (buttonElement) {
-        buttonElement.classList.add('active-speed-btn');
+      if (activePlayer) {
+        activePlayer.playbackRate = speed;
+        document.querySelectorAll('#speedBtnGroup .btn').forEach(btn => btn.classList.remove('active-speed-btn'));
+        if (buttonElement) {
+          buttonElement.classList.add('active-speed-btn');
+        }
+        if (!activePlayer.paused) {
+          updateStatus('playing', `正在播放 (${speed}x)`);
+        }
+        saveAllSettings();
       }
-      if (!videoPlayer.paused) {
-        updateStatus('playing', `正在播放 (${speed}x)`);
-      }
-      saveAllSettings();
     }
 
     /**
      * 切换静音。
      */
     function toggleMute() {
-      if (videoPlayer.volume > 0) {
-        videoPlayer.dataset.previousVolume = videoPlayer.volume;
+      if (!activePlayer) return;
+
+      if (activePlayer.volume > 0) {
+        activePlayer.dataset.previousVolume = activePlayer.volume; // 存储之前的音量
       }
 
-      if (videoPlayer.volume > 0) {
-        videoPlayer.volume = 0;
+      if (activePlayer.volume > 0) {
+        activePlayer.volume = 0;
         volumeSlider.value = 0;
         inVideoVolumeSlider.value = 0;
       } else {
-        const previousVolume = parseFloat(videoPlayer.dataset.previousVolume || 0.7);
-        videoPlayer.volume = previousVolume;
+        const previousVolume = parseFloat(activePlayer.dataset.previousVolume || 0.7);
+        activePlayer.volume = previousVolume;
         volumeSlider.value = Math.round(previousVolume * 100);
         inVideoVolumeSlider.value = Math.round(previousVolume * 100);
       }
 
-      // 更新音量百分比显示
       volumePercentageDisplay.textContent = `${volumeSlider.value}%`;
       inVideoVolumePercentageDisplay.textContent = `${inVideoVolumeSlider.value}%`;
 
-      if (videoPlayer.volume === 0) {
+      if (activePlayer.volume === 0) {
         volumeIcon.className = 'fas fa-volume-off';
         inVideoVolumeIcon.className = 'fas fa-volume-off';
-      } else if (videoPlayer.volume < 0.5) {
+      } else if (activePlayer.volume < 0.5) {
         volumeIcon.className = 'fas fa-volume-down';
         inVideoVolumeIcon.className = 'fas fa-volume-down';
       } else {
@@ -3972,8 +4218,8 @@
      */
     function updateMuteButtonIcon() {
       const muteButton = document.getElementById('muteButton');
-      if (muteButton && muteButtonIcon) {
-        if (videoPlayer.volume === 0) {
+      if (muteButton && muteButtonIcon && activePlayer) {
+        if (activePlayer.volume === 0) {
           muteButtonIcon.className = 'fas fa-volume-off';
           muteButton.setAttribute('aria-label', '取消静音');
         } else {
@@ -4021,15 +4267,17 @@
         // 检查焦点是否在输入框或文本区域
         const isInputFocused = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
 
-        if (event.key === ' ' && !isInputFocused) {
-            event.preventDefault(); // 阻止默认的空格键行为 (如页面滚动)
-            togglePlayPause();
-        } else if (event.key === 'ArrowLeft' && !isInputFocused) {
-            event.preventDefault();
-            videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 5); // 快退 5 秒
-        } else if (event.key === 'ArrowRight' && !isInputFocused) {
-            event.preventDefault();
-            videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 5); // 快进 5 秒
+        if (activePlayer && !isInputFocused) { // 确保有活跃播放器且焦点不在输入框
+            if (event.key === ' ') {
+                event.preventDefault(); // 阻止默认的空格键行为 (如页面滚动)
+                togglePlayPause();
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                activePlayer.currentTime = Math.max(0, activePlayer.currentTime - 5); // 快退 5 秒
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                activePlayer.currentTime = Math.min(activePlayer.duration, activePlayer.currentTime + 5); // 快进 5 秒
+            }
         }
     }
 
@@ -4078,17 +4326,16 @@
         });
     }
 
-
     // --- 新的下载功能 (参考用户提供代码) ---
     async function downloadVideo() {
-      const url = currentVideoUrl; // Get the currently playing video URL
+      const url = currentVideoUrl; // 获取当前播放视频的 URL
 
-      if (!url) {
+      if (!url || url === 'about:blank') { // 检查是否有 URL 且不是 about:blank
         alert('没有正在播放的视频可以下载。');
         return;
       }
 
-      // Handle local files
+      // 处理本地文件
       if (url.startsWith('blob:')) {
         alert('当前正在播放的是本地视频，无需下载。');
         return;
@@ -4098,9 +4345,9 @@
 
       try {
         const extension = getFileExtension(url);
-        let filename = `video_${Date.now()}`; // Default filename
+        let filename = `video_${Date.now()}`; // 默认文件名
 
-        // Try to derive a better filename from the URL
+        // 尝试从 URL 中获取更好的文件名
         try {
             const urlObj = new URL(url);
             const pathSegments = urlObj.pathname.split('/');
@@ -4111,22 +4358,20 @@
                 filename += `.${extension}`;
             }
         } catch (e) {
-            console.warn("Could not parse URL for filename, using default.", e);
+            console.warn("无法解析 URL 以获取文件名，使用默认值。", e);
             if (extension) {
                 filename += `.${extension}`;
             }
         }
 
         if (extension === 'm3u8' || url.includes('.m3u8')) {
-          // HLS (M3U8) download
+          // HLS (M3U8) 下载
           await downloadHLS(url, filename);
         } else if (extension === 'flv' || url.includes('.flv')) {
-          // FLV download (assuming direct FLV file)
-          // For FLV, if it's a direct file, a simple download works.
-          // If it's a stream, it's more complex, but for VOD FLV, direct download is often possible.
+          // FLV 下载 (假设是直接的 FLV 文件)
           await downloadDirect(url, filename);
         } else {
-          // Direct download for other formats (MP4, WebM etc.)
+          // 其他格式 (MP4, WebM 等) 直接下载
           await downloadDirect(url, filename);
         }
         updateStatus('playing', '下载准备完成，浏览器将开始下载。');
@@ -4137,24 +4382,24 @@
       }
     }
 
-    // Helper for direct file download
+    // 直接文件下载辅助函数
     async function downloadDirect(url, filename) {
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename; // Suggest a filename
+      a.download = filename; // 建议文件名
       document.body.appendChild(a);
       a.click();
-      // Give browser a moment to initiate download before revoking
+      // 给浏览器一点时间启动下载，然后撤销
       setTimeout(() => {
           document.body.removeChild(a);
-          // If it's a blob URL, revoke it (though for direct URL, browser manages)
+          // 如果是 blob URL，撤销它 (尽管对于直接 URL，浏览器会管理)
           if (url.startsWith('blob:')) {
               URL.revokeObjectURL(url);
           }
       }, 100);
     }
 
-    // Helper for HLS (M3U8) download
+    // HLS (M3U8) 下载辅助函数
     async function downloadHLS(m3u8Url, baseFilename) {
       updateStatus('loading', '正在下载M3U8播放列表...');
       const response = await fetch(m3u8Url);
@@ -4164,27 +4409,27 @@
       const manifestText = await response.text();
 
       const segmentUrls = [];
-      const baseUrl = m3u38Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // Correct baseUrl calculation
+      const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // 正确计算 baseUrl
 
-      const lines = manifestText.split('\n'); // Split manifest into lines
+      const lines = manifestText.split('\n'); // 将 manifest 分割成行
       for (const line of lines) {
         if (line.startsWith('#') || line.trim() === '') {
-          continue; // Skip comments and empty lines
+          continue; // 跳过注释和空行
         }
-        // Handle master playlist (if it points to other .m3u8 files)
+        // 处理主播放列表 (如果它指向其他 .m3u8 文件)
         if (line.endsWith('.m3u8')) {
-            const variantUrl = new URL(line, baseUrl).href; // Resolve relative URL
-            console.log(`Found variant M3U8: ${variantUrl}. Attempting to download it.`);
-            // Recursively call for the variant. This will download the first variant found.
+            const variantUrl = new URL(line, baseUrl).href; // 解析相对 URL
+            console.log(`发现变体 M3U8: ${variantUrl}。尝试下载它。`);
+            // 递归调用变体。这将下载找到的第一个变体。
             return downloadHLS(variantUrl, baseFilename);
         }
-        // Assume it's a segment URL
-        const segmentUrl = new URL(line, baseUrl).href; // Resolve relative URL
+        // 假设它是片段 URL
+        const segmentUrl = new URL(line, baseUrl).href; // 解析相对 URL
         segmentUrls.push(segmentUrl);
       }
 
       if (segmentUrls.length === 0) {
-        throw new Error('No video segments found in the M3u8 manifest.');
+        throw new Error('M3U8 manifest 中未找到视频片段。');
       }
 
       const segmentData = [];
@@ -4204,7 +4449,7 @@
       }
 
       updateStatus('loading', '正在合并视频片段...');
-      // Concatenate all ArrayBuffers
+      // 连接所有 ArrayBuffer
       const totalLength = segmentData.reduce((acc, val) => acc + val.length, 0);
       const concatenatedBuffer = new Uint8Array(totalLength);
       let offset = 0;
@@ -4213,19 +4458,19 @@
         offset += segment.length;
       }
 
-      // Determine MIME type. For .ts segments, it's typically video/mp2t.
+      // 确定 MIME 类型。对于 .ts 片段，通常是 video/mp2t。
       const blob = new Blob([concatenatedBuffer], { type: 'video/mp2t' });
 
       const downloadLink = document.createElement('a');
       downloadLink.href = URL.createObjectURL(blob);
-      // Suggest .ts extension for concatenated HLS, remove .m3u8 from original filename
+      // 建议 .ts 扩展名用于连接的 HLS，从原始文件名中移除 .m3u8
       downloadLink.download = `${baseFilename.replace(/\.m3u8$/, '')}.ts`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       setTimeout(() => {
           document.body.removeChild(downloadLink);
-          URL.revokeObjectURL(downloadLink.href); // Clean up the object URL
-      }, 100); // Delay revocation to ensure download starts
+          URL.revokeObjectURL(downloadLink.href); // 清理对象 URL
+      }, 100); // 延迟撤销以确保下载开始
     }
   </script>
 </body>
