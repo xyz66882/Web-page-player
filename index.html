@@ -1302,15 +1302,21 @@
       display: flex;
       gap: var(--spacing-sm);
       flex-wrap: nowrap; /* 强制不换行 */
-      overflow-x: auto; /* 允许水平滚动 */
+      /* overflow-x: auto; /* 移除此行，以防止水平滚动 */
       justify-content: flex-end; /* 按钮靠右对齐 */
       padding-bottom: var(--spacing-sm); /* 底部留白，防止滚动条遮挡 */
       -webkit-overflow-scrolling: touch; /* 移动端平滑滚动 */
+      width: 100%; /* 确保占据可用宽度 */
     }
     .history-loop-controls .btn {
-      flex-shrink: 0; /* 防止按钮被压缩 */
+      /* flex-shrink: 0; /* 移除此行，允许按钮收缩 */
+      flex: 1 1 0; /* 允许按钮收缩和增长，基础宽度为0 */
+      min-width: unset; /* 确保没有最小宽度限制 */
       padding: 8px 12px; /* 调整按钮内边距 */
       font-size: var(--font-size-xs); /* 调整字体大小 */
+      white-space: nowrap; /* 确保文本不换行 */
+      overflow: hidden; /* 隐藏溢出文本 */
+      text-overflow: ellipsis; /* 溢出文本显示省略号 */
     }
 
 
@@ -1664,7 +1670,7 @@
 
         <!-- 视频播放器容器，默认隐藏 -->
         <div class="video-container" id="videoContainer">
-          <video id="videoPlayer" crossorigin="anonymous"></video> <!-- 移除 controls 属性 -->
+          <video id="videoPlayer"></video> <!-- 移除 controls 属性和 crossorigin="anonymous" -->
           <div id="subtitleDisplay" class="subtitle-display" style="display: none;"></div>
 
           <!-- 视频内部控制条 -->
@@ -4158,7 +4164,7 @@
       const manifestText = await response.text();
 
       const segmentUrls = [];
-      const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // Correct baseUrl calculation
+      const baseUrl = m3u38Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // Correct baseUrl calculation
 
       const lines = manifestText.split('\n'); // Split manifest into lines
       for (const line of lines) {
