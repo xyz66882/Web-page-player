@@ -1,6 +1,15 @@
 # Web-page-player
 # 本地网页视频播放器（纯 HTML 实现）
-
+<p align="center">
+  <!-- 创建日期 --><img alt="GitHub Created At" src="https://img.shields.io/github/created-at/xyz66882/Web-page-player?logo=github&label=%E5%88%9B%E5%BB%BA%E6%97%A5%E6%9C%9F">
+  <!-- 下载量 --><a href="https://github.com/xyz66882/Web-page-player/releases"><img src="https://img.shields.io/github/downloads/xyz66882/Web-page-player/total?logo=github&label=%E4%B8%8B%E8%BD%BD%E9%87%8F"></a>
+  <!-- 贡献者 --><a href="https://github.com/xyz66882/Web-page-player/graphs/contributors"><img src="https://img.shields.io/github/contributors-anon/xyz66882/Web-page-player?logo=github&label=%E8%B4%A1%E7%8C%AE%E8%80%85"></a>
+  <!-- 最新版本 --><a href="https://github.com/xyz66882/Web-page-player/releases/"><img src="https://img.shields.io/github/release/xyz66882/Web-page-player?logo=github&label=%E6%9C%80%E6%96%B0%E7%89%88%E6%AC%A1"></a>
+  <!-- 问题数 --><a href="https://github.com/xyz66882/Web-page-player/issues"><img src="https://img.shields.io/github/issues-raw/xyz66882/Web-page-player?logo=github&label=%E9%97%AE%E9%A2%98"></a>
+  <!-- 讨论数 --><a href="https://github.com/xyz66882/Web-page-player/discussions"><img src="https://img.shields.io/github/discussions/xyz66882/Web-page-player?logo=github&label=%E8%AE%A8%E8%AE%BA"></a>
+  <!-- 仓库大小 --><a href="https://github.com/xyz66882/Web-page-player"><img src="https://img.shields.io/github/repo-size/xyz66882/Web-page-player?logo=github&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F"></a>
+  <!-- 构建状态 --><a href="https://github.com/xyz66882/Web-page-player/actions?query=workflow%3ABuild"><img src="https://img.shields.io/github/actions/workflow/status/xyz66882/Web-page-player/build.yml?branch=main&logo=github&label=%E6%9E%84%E5%BB%BA%E7%8A%B6%E6%80%81" alt="Build status"></a>
+</p>
 ## 说明文档
 
 本项目是一个**基于纯 HTML 的本地网页视频播放器**，适用于在本地或服务器上播放在线视频。以下为使用过程中需要注意的事项和技术限制说明。
