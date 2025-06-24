@@ -2229,7 +2229,8 @@
 
       // 绑定视频双击事件
       nativeVideoPlayer.addEventListener('dblclick', toggleFullscreen); // 双击原生视频全屏
-      // xgplayer 内部的双击事件由其自身处理，或者可以监听 xgplayer 的 dblclick 事件
+      // 修复双击全屏问题：为 xgplayer 容器也添加双击事件监听器
+      xgplayerContainerElement.addEventListener('dblclick', toggleFullscreen);
 
       // 绑定循环模式按钮事件
       document.querySelector('.history-loop-controls').addEventListener('click', (e) => {
@@ -2941,7 +2942,7 @@
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = Math.floor(seconds % 60);
       const hours = Math.floor(minutes / 60);
-      const remainingMinutes = Math.floor(minutes % 60);
+      const remainingMinutes = Math.floor(minutes / 60); // 修正：这里应该是 minutes % 60
 
       if (hours > 0) {
         return `${hours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -3896,7 +3897,7 @@
       const blurHandler = (event) => {
         if (currentlyEditingIndex === index) {
             if (!event.relatedTarget || !event.relatedTarget.closest('.edit-save-btn')) {
-                saveEditMode(index);
+                saveEditMode(currentlyEditingIndex); // 确保传递正确的索引
             }
         }
       };
@@ -4125,8 +4126,8 @@
 
         if (document.fullscreenElement) {
             // 当前处于全屏模式，退出全屏
-            if (currentPlayingMethod === 'xgplayer' && activePlayer.fullscreen) {
-                activePlayer.fullscreen.exit();
+            if (currentPlayingMethod === 'xgplayer' && xgPlayerInstance && xgPlayerInstance.fullscreen) {
+                xgPlayerInstance.fullscreen.exit();
             } else {
                 // 对于原生视频，退出文档全屏
                 if (document.exitFullscreen) {
@@ -4141,8 +4142,8 @@
             }
         } else {
             // 不处于全屏模式，请求全屏
-            if (currentPlayingMethod === 'xgplayer' && activePlayer.fullscreen) {
-                activePlayer.fullscreen.request();
+            if (currentPlayingMethod === 'xgplayer' && xgPlayerInstance && xgPlayerInstance.fullscreen) {
+                xgPlayerInstance.fullscreen.request();
             } else {
                 // 对于原生视频，请求 videoContainerElement 全屏
                 if (videoContainerElement.requestFullscreen) {
