@@ -1,0 +1,32 @@
+name: Update Release Info
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-release-info:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Get current date and time
+      id: get-date-time
+      run: echo "date_time=$(date +'%Y年%m月%d日%H:%M:%S')" >> $GITHUB_ENV
+
+    - name: Update releases.md
+      run: |
+        echo "## ${GITHUB_REF_NAME}" > releases.md
+        echo "- 编译时间: **${{ env.date_time }}**" >> releases.md
+        echo "- 下载次数: **0**" >> releases.md
+        cat releases.md
+
+    - name: Commit changes
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git add releases.md
+        git commit -m "Update release info for ${GITHUB_REF_NAME}"
+        git push origin main
