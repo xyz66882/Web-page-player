@@ -8,7 +8,6 @@
   <!-- 问题数 --><a href="https://github.com/xyz66882/Web-page-player/issues"><img src="https://img.shields.io/github/issues-raw/xyz66882/Web-page-player?logo=github&label=%E9%97%AE%E9%A2%98"></a>
   <!-- 讨论数 --><a href="https://github.com/xyz66882/Web-page-player/discussions"><img src="https://img.shields.io/github/discussions/xyz66882/Web-page-player?logo=github&label=%E8%AE%A8%E8%AE%BA"></a>
   <!-- 仓库大小 --><a href="https://github.com/xyz66882/Web-page-player"><img src="https://img.shields.io/github/repo-size/xyz66882/Web-page-player?logo=github&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F"></a>
-  <!-- 构建状态 --><a href="https://github.com/xyz66882/Web-page-player/actions?query=workflow%3ABuild"><img src="https://img.shields.io/github/actions/workflow/status/xyz66882/Web-page-player/build.yml?branch=main&logo=github&label=%E6%9E%84%E5%BB%BA%E7%8A%B6%E6%80%81" alt="Build status"></a>
 </p>
 
 ## 说明文档
