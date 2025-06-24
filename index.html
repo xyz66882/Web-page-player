@@ -580,7 +580,7 @@
     }
 
     .volume-slider {
-      width: 80px; /* 较短的音量条 */
+      width: 80px; /*较短的音量条 */
       height: 6px;
       -webkit-appearance: none;
       background: rgba(0, 0, 0, 0.3);
@@ -1950,6 +1950,12 @@
     let currentSubtitleFileName = null; // 当前加载的字幕文件名
     let isSeeking = false; // 用于标记用户是否正在拖动进度条
     let wasPlayingBeforeSeek = false; // 用于记录拖动进度条前视频是否在播放
+
+    // 新增用于键盘快进/快退的全局变量
+    let keyboardSeekTimeout = null;
+    let keyboardSeekCurrentTime = 0; // 用于存储键盘快进/快退时的预览时间
+    let isKeyboardSeeking = false; // 标记是否正在进行键盘快进/快退操作
+
     let currentlyEditingIndex = -1; // 用于跟踪当前正在编辑的历史项索引
     let currentLoopMode = localStorage.getItem('loopMode') || 'none'; // 循环模式：'none', 'single', 'list', 'shuffle'
     let currentPlayingHistoryIndex = -1; // 跟踪当前播放的视频在历史记录中的索引
@@ -2020,7 +2026,6 @@
         inVideoSeekSlider, inVideoCurrentTimeDisplay, inVideoDurationDisplay,
         inVideoVolumeSlider, inVideoVolumeIcon, inVideoVolumePercentageDisplay, inVideoFullscreenBtn,
         loopSingleBtn, loopListBtn, loopShuffleBtn;
-
 
     // ====================================================================
     // DOMContentLoaded 事件监听器
@@ -2100,7 +2105,6 @@
       loopSingleBtn = document.getElementById('loopSingleBtn');
       loopListBtn = document.getElementById('loopListBtn');
       loopShuffleBtn = document.getElementById('loopShuffleBtn');
-
 
       // 加载主题设置
       loadTheme();
@@ -2261,6 +2265,8 @@
 
         // 确保在控制条元素上移动鼠标也能保持显示
         inVideoControls.addEventListener('mousemove', showControls);
+        inVideoControls.addEventListener('mousedown', showControls);
+        inVideoControls.addEventListener('mouseup', showControls);
         inVideoControls.addEventListener('mouseleave', resetHideTimer);
 
         // 任何对控制条内部交互元素的鼠标事件都应重置计时器
@@ -2289,9 +2295,53 @@
 
       // 视频暂停时保持控制条显示，停止计时器
       // 这里监听的是原生 videoPlayer 的 pause 事件，xgplayer 播放时需要单独监听其 pause 事件
-      nativeVideoPlayer.addEventListener('pause', function() {
-        clearTimeout(controlsHideTimeout);
-        inVideoControls.classList.add('controls-visible');
+      nativeVideoPlayer.addEventListener('pause', function () {
+            if (currentPlayingMethod !== 'xgplayer') {
+                // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
+                if (!isSeeking && !isKeyboardSeeking) {
+                    updateStatus('stopped', '播放已暂停');
+                }
+                playPauseIcon.className = 'fas fa-play';
+                inVideoPlayPauseIcon.className = 'fas fa-play';
+                clearTimeout(controlsHideTimeout);
+                inVideoControls.classList.add('controls-visible');
+            }
+        });
+
+      nativeVideoPlayer.addEventListener('waiting', function () {
+          if (currentPlayingMethod !== 'xgplayer') {
+              updateStatus('loading', '正在缓冲...');
+          }
+      });
+
+      nativeVideoPlayer.addEventListener('ended', handleVideoEnded);
+
+      nativeVideoPlayer.addEventListener('error', handleVideoError);
+
+      // 绑定全局 seeked 事件处理器
+      nativeVideoPlayer.addEventListener('seeked', globalSeekedHandler);
+
+      // 进度条拖动事件 (PC端)
+      seekSlider.addEventListener('mousedown', handleSeekStart);
+      seekSlider.addEventListener('mouseup', handleSeekEnd);
+      inVideoSeekSlider.addEventListener('mousedown', handleSeekStart);
+      inVideoSeekSlider.addEventListener('mouseup', handleSeekEnd);
+
+      // 进度条拖动事件 (移动端)
+      seekSlider.addEventListener('touchstart', handleSeekStart);
+      seekSlider.addEventListener('touchend', handleSeekEnd);
+      inVideoSeekSlider.addEventListener('touchstart', handleSeekStart);
+      inVideoSeekSlider.addEventListener('touchend', handleSeekEnd);
+
+      seekSlider.addEventListener('input', function() {
+          currentTimeDisplay.textContent = formatTime(this.value);
+          inVideoSeekSlider.value = this.value; // 同步视频内部进度条
+          inVideoCurrentTimeDisplay.textContent = formatTime(this.value); // 同步视频内部时间
+      });
+      inVideoSeekSlider.addEventListener('input', function() {
+          inVideoCurrentTimeDisplay.textContent = formatTime(this.value);
+          seekSlider.value = this.value; // 同步外部进度条
+          currentTimeDisplay.textContent = formatTime(this.value); // 同步外部时间
       });
     });
 
@@ -2736,11 +2786,10 @@
     function setupPlayerEvents() {
         // 这些事件监听器绑定到 nativeVideoPlayer，当 xgplayer 活跃时，其自身的事件会更新 UI
         nativeVideoPlayer.addEventListener('timeupdate', function () {
-            if (currentPlayingMethod !== 'xgplayer' && !isSeeking) {
+            // 只有当不处于拖动或键盘快进/快退预览状态时，才更新UI
+            if (currentPlayingMethod !== 'xgplayer' && !isSeeking && !isKeyboardSeeking) {
                 seekSlider.value = nativeVideoPlayer.currentTime;
                 inVideoSeekSlider.value = nativeVideoPlayer.currentTime;
-            }
-            if (currentPlayingMethod !== 'xgplayer') {
                 currentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
                 inVideoCurrentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
             }
@@ -2777,7 +2826,10 @@
 
         nativeVideoPlayer.addEventListener('pause', function () {
             if (currentPlayingMethod !== 'xgplayer') {
-                updateStatus('stopped', '播放已暂停');
+                // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
+                if (!isSeeking && !isKeyboardSeeking) {
+                    updateStatus('stopped', '播放已暂停');
+                }
                 playPauseIcon.className = 'fas fa-play';
                 inVideoPlayPauseIcon.className = 'fas fa-play';
                 clearTimeout(controlsHideTimeout);
@@ -2794,6 +2846,9 @@
         nativeVideoPlayer.addEventListener('ended', handleVideoEnded);
 
         nativeVideoPlayer.addEventListener('error', handleVideoError);
+
+        // 绑定全局 seeked 事件处理器
+        nativeVideoPlayer.addEventListener('seeked', globalSeekedHandler);
 
         // 进度条拖动事件 (PC端)
         seekSlider.addEventListener('mousedown', handleSeekStart);
@@ -2817,6 +2872,25 @@
             seekSlider.value = this.value; // 同步外部进度条
             currentTimeDisplay.textContent = formatTime(this.value); // 同步外部时间
         });
+    }
+
+    /**
+     * 全局 seeked 事件处理器。
+     */
+    function globalSeekedHandler() {
+        if (wasPlayingBeforeSeek) {
+            activePlayer.play().catch(e => console.error("Error playing after seeked:", e));
+        }
+        // 根据播放器当前状态更新状态指示器
+        if (activePlayer.paused) {
+            updateStatus('loading', '正在缓冲...'); // 拖动后暂停，显示缓冲
+        } else {
+            updateStatus('playing', `正在播放 (${activePlayer.playbackRate}x)`);
+        }
+        // 重置标志
+        wasPlayingBeforeSeek = false;
+        isSeeking = false;
+        isKeyboardSeeking = false; // 确保键盘seek标志也重置
     }
 
     // Common handler for video ended event
@@ -2896,43 +2970,25 @@
         videoContainerElement.classList.remove('visible');
     }
 
+    /**
+     * 拖动或键盘快进/快退开始时的通用处理逻辑。
+     */
+    function handleSeekStartCommon() {
+        wasPlayingBeforeSeek = !activePlayer.paused; // 记录拖动前是否在播放
+        activePlayer.pause(); // 暂停播放
+        updateStatus('loading', '正在缓冲...'); // 更新状态为缓冲
+    }
+
     function handleSeekStart() {
         isSeeking = true;
-        wasPlayingBeforeSeek = !activePlayer.paused; // 记录拖动前是否在播放
-        activePlayer.pause();
+        handleSeekStartCommon();
     }
 
     function handleSeekEnd() {
-        isSeeking = false;
+        // isSeeking = false; // 不在这里重置，由 globalSeekedHandler 重置
         const targetTime = parseFloat(this.value); // 使用触发事件的滑块的值
-        const wasPlaying = wasPlayingBeforeSeek; // 捕获本地变量
-
-        // 确保移除所有旧的 seeked 监听器，防止重复触发
-        if (currentPlayingMethod === 'xgplayer') {
-            activePlayer.off('seeked', onSeekedResumePlayback);
-        } else {
-            nativeVideoPlayer.removeEventListener('seeked', onSeekedResumePlayback);
-        }
-
         activePlayer.currentTime = targetTime;
-
-        function onSeekedResumePlayback() {
-            if (currentPlayingMethod === 'xgplayer') {
-                activePlayer.off('seeked', onSeekedResumePlayback);
-            } else {
-                nativeVideoPlayer.removeEventListener('seeked', onSeekedResumePlayback);
-            }
-            if (wasPlaying) {
-                activePlayer.play().catch(e => console.error("Error playing after seeked:", e));
-            }
-        }
-
-        // 添加一个针对当前 seek 操作的新的 seeked 监听器
-        if (currentPlayingMethod === 'xgplayer') {
-            activePlayer.on('seeked', onSeekedResumePlayback);
-        } else {
-            nativeVideoPlayer.addEventListener('seeked', onSeekedResumePlayback);
-        }
+        // globalSeekedHandler 会在 seeked 事件触发时处理状态更新和播放恢复
     }
 
     /**
@@ -3021,7 +3077,6 @@
             this.dispatchEvent(new Event('input')); // 触发 input 事件来更新音量和UI
         });
     }
-
 
     /**
      * 设置字幕样式控制。
@@ -3313,7 +3368,10 @@
                   resetHideTimer();
               });
               xgPlayerInstance.on('pause', () => {
-                  updateStatus('stopped', '播放已暂停');
+                  // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
+                  if (!isSeeking && !isKeyboardSeeking) {
+                      updateStatus('stopped', '播放已暂停');
+                  }
                   playPauseIcon.className = 'fas fa-play';
                   inVideoPlayPauseIcon.className = 'fas fa-play';
                   clearTimeout(controlsHideTimeout);
@@ -3322,12 +3380,13 @@
               xgPlayerInstance.on('ended', handleVideoEnded);
               xgPlayerInstance.on('error', handleVideoError);
               xgPlayerInstance.on('timeupdate', () => {
-                  if (!isSeeking) {
+                  // 只有当不处于拖动或键盘快进/快退预览状态时，才更新UI
+                  if (!isSeeking && !isKeyboardSeeking) {
                       seekSlider.value = activePlayer.currentTime;
                       inVideoSeekSlider.value = activePlayer.currentTime;
+                      currentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
+                      inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
                   }
-                  currentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
-                  inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
 
                   if (subtitleActive && currentSubtitleTracks.length > 0) {
                       updateSubtitleDisplay(activePlayer.currentTime);
@@ -3354,8 +3413,8 @@
                   }
                   updateMuteButtonIcon();
               });
-              // xgplayer 有自己的全屏处理，我们将使用其 API 方法进行切换
-              // 并且监听 document 的 fullscreenchange 事件来处理样式更新
+              // 绑定 xgplayer 的 seeked 事件到全局处理器
+              xgPlayerInstance.on('seeked', globalSeekedHandler);
 
               // 应用保存的播放速度
               const savedPlaybackRate = localStorage.getItem('playbackRate');
@@ -3929,7 +3988,6 @@
       const editSaveIcon = editSaveBtn.querySelector('i');
       const editSaveLabel = editSaveBtn.querySelector('.button-label');
 
-
       displaySpan.style.display = 'none';
       editInput.style.display = 'inline-block';
       editInput.value = displaySpan.textContent;
@@ -4074,7 +4132,7 @@
       if (item.type === 'local') {
         // 检查本地文件是否仍然可用 (如果文件对象丢失，则无法播放)
         // 这里的逻辑需要确保 currentLocalFileObject 确实是之前播放的那个文件
-        // 简单起见，如果 URL 是 blob: 且文件名匹配，则尝试播放
+        // 简单起见，如果 item.url 是 blob: 且文件名匹配，则尝试播放
         if (item.url.startsWith('blob:') && currentLocalFileObject && currentLocalFileName === item.fileName) {
             document.getElementById('videoURL').value = item.title; // 更新 URL 输入框显示
             playLocalVideo(currentLocalFileObject); // 播放本地文件
@@ -4272,12 +4330,34 @@
             if (event.key === ' ') {
                 event.preventDefault(); // 阻止默认的空格键行为 (如页面滚动)
                 togglePlayPause();
-            } else if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                activePlayer.currentTime = Math.max(0, activePlayer.currentTime - 5); // 快退 5 秒
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                activePlayer.currentTime = Math.min(activePlayer.duration, activePlayer.currentTime + 5); // 快进 5 秒
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                event.preventDefault(); // 阻止默认的滚动行为
+
+                if (!isKeyboardSeeking) {
+                    isKeyboardSeeking = true;
+                    handleSeekStartCommon(); // 调用通用开始seek逻辑
+                    keyboardSeekCurrentTime = activePlayer.currentTime; // 初始化预览时间为当前播放时间
+                }
+
+                // 清除之前的定时器，实现防抖
+                clearTimeout(keyboardSeekTimeout);
+
+                const seekAmount = (event.key === 'ArrowRight' ? 5 : -5); // 每次快进/快退 5 秒
+                // 更新预览时间，并确保不超出视频范围
+                keyboardSeekCurrentTime = Math.max(0, Math.min(activePlayer.duration, keyboardSeekCurrentTime + seekAmount));
+
+                // 更新UI显示预览时间
+                seekSlider.value = keyboardSeekCurrentTime;
+                inVideoSeekSlider.value = keyboardSeekCurrentTime;
+                currentTimeDisplay.textContent = formatTime(keyboardSeekCurrentTime);
+                inVideoCurrentTimeDisplay.textContent = formatTime(keyboardSeekCurrentTime);
+
+                // 设置定时器，在短暂停顿后才实际执行seek操作
+                keyboardSeekTimeout = setTimeout(() => {
+                    activePlayer.currentTime = keyboardSeekCurrentTime;
+                    // isKeyboardSeeking = false; // 不在这里重置，由 globalSeekedHandler 重置
+                    // 实际seek完成后，globalSeekedHandler 会处理状态更新和播放恢复
+                }, 200); // 200ms 内没有新的按键事件，则执行seek
             }
         }
     }
