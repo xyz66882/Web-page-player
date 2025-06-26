@@ -1966,7 +1966,7 @@
 
     // 支持的视频格式列表 (用于文件扩展名检查)
     const supportedFormats = [
-      'mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', 'avi', 'wmv', '3gp', 'ogg', 'mpg', 'mpeg', 'vob', 'ts',
+      'mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', '3gp', 'ogg', 'mpg', 'mpeg', 'vob', 'ts', 'avi', 'wmv' // Added avi, wmv
     ];
 
     // 字幕设置的默认值
@@ -2998,7 +2998,7 @@
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = Math.floor(seconds % 60);
       const hours = Math.floor(minutes / 60);
-      const remainingMinutes = Math.floor(minutes / 60); // 修正：这里应该是 minutes % 60
+      const remainingMinutes = Math.floor(minutes % 60); // 修正：这里应该是 minutes % 60
 
       if (hours > 0) {
         return `${hours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -3493,7 +3493,15 @@
         if (isM3U8Stream) {
             currentPlayingMethod = 'hls';
             if (Hls.isSupported()) {
-                hlsInstance = new Hls();
+                // HLS.js 配置优化
+                const hlsConfig = {
+                    maxBufferLength: 60, // Max buffer length in seconds (default 30s)
+                    maxMaxBufferLength: 90, // Max buffer length the buffer can grow to (default 60s)
+                    startFragPrefetch: true, // Enable prefetching of fragments
+                    // enableWorker: true, // Keep web worker enabled for performance (default true)
+                    // forceKeyFrameOnDiscontinuity: true, // Might help with stream discontinuities
+                };
+                hlsInstance = new Hls(hlsConfig);
                 hlsInstance.loadSource(url);
                 hlsInstance.attachMedia(nativeVideoPlayer);
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
@@ -3505,11 +3513,33 @@
                         videoContainerElement.classList.remove('visible');
                     });
                 });
+                // 增强 HLS.js 错误处理
                 hlsInstance.on(Hls.Events.ERROR, function (event, data) {
                     console.error('HLS错误:', data);
-                    updateStatus('stopped', 'HLS错误: ' + data.details);
-                    uploadPlaceholder.classList.remove('hidden');
-                    videoContainerElement.classList.remove('visible');
+                    let errorMessage = `HLS错误: ${data.details}`;
+                    if (data.fatal) {
+                        errorMessage += ' (致命错误)';
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.warn('HLS致命网络错误，尝试恢复...');
+                                hlsInstance.startLoad(); // 尝试重新加载
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.warn('HLS致命媒体错误，尝试恢复...');
+                                hlsInstance.recoverMediaError(); // 尝试恢复媒体错误
+                                break;
+                            default:
+                                updateStatus('stopped', errorMessage);
+                                uploadPlaceholder.classList.remove('hidden');
+                                videoContainerElement.classList.remove('visible');
+                                if (hlsInstance) {
+                                    hlsInstance.destroy();
+                                    hlsInstance = null;
+                                }
+                                return; // 对于其他致命错误，停止并销毁
+                        }
+                    }
+                    updateStatus('stopped', errorMessage); // 更新状态
                 });
             } else if (nativeVideoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
                 nativeVideoPlayer.src = url;
@@ -3538,7 +3568,12 @@
                 // 如果原生播放失败，尝试使用 HLS 回退 (例如，对于一些 TS 流)
                 if (Hls.isSupported()) {
                     updateStatus('loading', '尝试使用HLS播放...');
-                    hlsInstance = new Hls();
+                    const hlsConfig = { // 同样应用 HLS.js 配置
+                        maxBufferLength: 60,
+                        maxMaxBufferLength: 90,
+                        startFragPrefetch: true,
+                    };
+                    hlsInstance = new Hls(hlsConfig);
                     hlsInstance.loadSource(url);
                     hlsInstance.attachMedia(nativeVideoPlayer);
                     hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
@@ -3550,11 +3585,32 @@
                             videoContainerElement.classList.remove('visible');
                         });
                     });
-                    hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+                    hlsInstance.on(Hls.Events.ERROR, function (event, data) { // 同样增强错误处理
                         console.error('HLS回退错误:', data);
-                        updateStatus('stopped', 'HLS回退错误: ' + data.details);
-                        uploadPlaceholder.classList.remove('hidden');
-                        videoContainerElement.classList.remove('visible');
+                        let errorMessage = `HLS回退错误: ${data.details}`;
+                        if (data.fatal) {
+                            errorMessage += ' (致命错误)';
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    console.warn('HLS回退致命网络错误，尝试恢复...');
+                                    hlsInstance.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    console.warn('HLS回退致命媒体错误，尝试恢复...');
+                                    hlsInstance.recoverMediaError();
+                                    break;
+                                default:
+                                    updateStatus('stopped', errorMessage);
+                                    uploadPlaceholder.classList.remove('hidden');
+                                    videoContainerElement.classList.remove('visible');
+                                    if (hlsInstance) {
+                                        hlsInstance.destroy();
+                                        hlsInstance = null;
+                                    }
+                                    return;
+                            }
+                        }
+                        updateStatus('stopped', errorMessage);
                     });
                 } else {
                     updateStatus('stopped', '播放失败，浏览器不支持此格式。');
@@ -3897,7 +3953,7 @@
      * Function to determine if a URL is likely a valid video URL.
      */
     function isValidVideoUrl(url) {
-      const videoExtensions = ['mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', 'avi', 'wmv', '3gp', 'ogg', 'mpg', 'mpeg', 'vob', 'ts',];
+      const videoExtensions = ['mp4', 'm3u8', 'flv', 'webm', 'mkv', 'mov', '3gp', 'ogg', 'mpg', 'mpeg', 'vob', 'ts', 'avi', 'wmv']; // Added avi, wmv
       const extension = getFileExtension(url);
 
       if (url.startsWith('blob:')) {
@@ -4490,7 +4546,7 @@
       const manifestText = await response.text();
 
       const segmentUrls = [];
-      const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // 正确计算 baseUrl
+      const baseUrl = m3u3Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // 正确计算 baseUrl
 
       const lines = manifestText.split('\n'); // 将 manifest 分割成行
       for (const line of lines) {
