@@ -4557,17 +4557,22 @@
     async function downloadDirect(url, filename) {
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename; // 建议文件名
+      a.download = filename; // Suggested filename
       document.body.appendChild(a);
-      a.click();
-      // 给浏览器一点时间启动下载，然后撤销
-      setTimeout(() => {
+      a.click(); // Trigger the download
+
+      // For blob URLs, revoke the URL after a short delay to allow download to start
+      // For direct URLs, the browser handles the lifecycle, no need to revoke
+      if (url.startsWith('blob:')) {
+          setTimeout(() => {
+              URL.revokeObjectURL(url); // Clean up the blob URL
+              document.body.removeChild(a); // Remove the anchor element
+          }, 5000); // Give it 5 seconds to initiate download on mobile
+      } else {
+          // For direct URLs, remove the anchor element immediately after click
+          // The browser will handle the download process independently
           document.body.removeChild(a);
-          // 如果是 blob URL，撤销它 (尽管对于直接 URL，浏览器会管理)
-          if (url.startsWith('blob:')) {
-              URL.revokeObjectURL(url);
-          }
-      }, 100);
+      }
     }
 
     // HLS (M3U8) 下载辅助函数
@@ -4580,34 +4585,34 @@
       const manifestText = await response.text();
 
       const segmentUrls = [];
-      const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // 正确计算 baseUrl
+      const baseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1); // Correctly calculate baseUrl
 
-      const lines = manifestText.split('\n'); // 将 manifest 分割成行
+      const lines = manifestText.split('\n'); // Split manifest into lines
       for (const line of lines) {
         if (line.startsWith('#') || line.trim() === '') {
-          continue; // 跳过注释和空行
+          continue; // Skip comments and empty lines
         }
-        // 处理主播放列表 (如果它指向其他 .m3u8 文件)
+        // Handle master playlist (if it points to other .m3u8 files)
         if (line.endsWith('.m3u8')) {
-            const variantUrl = new URL(line, baseUrl).href; // 解析相对 URL
-            console.log(`发现变体 M3U8: ${variantUrl}。尝试下载它。`);
-            // 递归调用变体。这将下载找到的第一个变体。
+            const variantUrl = new URL(line, baseUrl).href; // Resolve relative URL
+            console.log(`Found variant M3U8: ${variantUrl}. Attempting to download it.`);
+            // Recursively call for variant. This will download the first variant found.
             return downloadHLS(variantUrl, baseFilename);
         }
-        // 假设它是片段 URL
-        const segmentUrl = new URL(line, baseUrl).href; // 解析相对 URL
+        // Assume it's a segment URL
+        const segmentUrl = new URL(line, baseUrl).href; // Resolve relative URL
         segmentUrls.push(segmentUrl);
       }
 
       if (segmentUrls.length === 0) {
-        throw new Error('M3U8 manifest 中未找到视频片段。');
+        throw new Error('No video segments found in M3U8 manifest.');
       }
 
       let downloadedSegmentsCount = 0;
       let downloadedTotalBytes = 0;
       const totalSegments = segmentUrls.length;
 
-      // 创建一个 Promise 数组，用于并发下载所有片段
+      // Create an array of Promises for concurrent download of all segments
       const segmentPromises = segmentUrls.map(async (segmentUrl, index) => {
           try {
               const segmentResponse = await fetch(segmentUrl);
@@ -4616,28 +4621,28 @@
               }
               const buffer = await segmentResponse.arrayBuffer();
 
-              // 更新进度（此部分将在每个 Promise 解析时调用）
-              downloadedSegmentsCount++; // 完成的片段数加1
-              downloadedTotalBytes += buffer.byteLength; // 累加已下载的字节数
+              // Update progress (this part will be called as each Promise resolves)
+              downloadedSegmentsCount++; // Increment completed segment count
+              downloadedTotalBytes += buffer.byteLength; // Accumulate downloaded bytes
 
-              // 实时更新下载状态
+              // Update download status in real-time
               updateStatus('loading', `正在下载片段 (${downloadedSegmentsCount}/${totalSegments}) - ${formatBytes(downloadedTotalBytes)}`);
 
               return new Uint8Array(buffer);
           } catch (error) {
               console.error(`Error fetching segment ${index + 1}:`, error);
-              // 重新抛出错误，确保如果任何片段下载失败，Promise.all 也拒绝
+              // Re-throw the error to ensure Promise.all rejects if any segment fails
               throw error;
           }
       });
 
-      updateStatus('loading', `正在下载片段 (0/${totalSegments}) - 0 Bytes`); // 初始显示
+      updateStatus('loading', `正在下载片段 (0/${totalSegments}) - 0 Bytes`); // Initial display
 
-      // 等待所有片段下载完成
+      // Wait for all segments to download
       const segmentData = await Promise.all(segmentPromises);
 
       updateStatus('loading', '正在合并视频片段...');
-      // 连接所有 ArrayBuffer
+      // Concatenate all ArrayBuffers
       const totalLength = segmentData.reduce((acc, val) => acc + val.length, 0);
       const concatenatedBuffer = new Uint8Array(totalLength);
       let offset = 0;
@@ -4646,19 +4651,27 @@
         offset += segment.length;
       }
 
-      // 确定 MIME 类型。对于 .ts 片段，通常是 video/mp2t。
+      // Determine MIME type. For .ts segments, it's usually video/mp2t.
       const blob = new Blob([concatenatedBuffer], { type: 'video/mp2t' });
 
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(blob);
-      // 建议 .ts 扩展名用于连接的 HLS，从原始文件名中移除 .m3u8
-      downloadLink.download = `${baseFilename.replace(/\.m3u8$/, '')}.ts`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      setTimeout(() => {
-          document.body.removeChild(downloadLink);
-          URL.revokeObjectURL(downloadLink.href); // 清理对象 URL
-      }, 100); // 延迟撤销以确保下载开始
+      // Use msSaveBlob for IE/Edge if available (though less common on mobile now)
+      if (navigator.msSaveBlob) {
+          navigator.msSaveBlob(blob, `${baseFilename.replace(/\.m3u8$/, '')}.ts`);
+          updateStatus('playing', '下载已开始 (IE/Edge)');
+      } else {
+          const downloadLink = document.createElement('a');
+          downloadLink.href = URL.createObjectURL(blob);
+          // Suggest .ts extension for concatenated HLS, remove .m3u8 from original filename
+          downloadLink.download = `${baseFilename.replace(/\.m3u8$/, '')}.ts`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click(); // Trigger the download
+
+          // Clean up the object URL and the anchor element after a delay
+          setTimeout(() => {
+              URL.revokeObjectURL(downloadLink.href); // Clean up the object URL
+              document.body.removeChild(downloadLink); // Remove the anchor element
+          }, 5000); // Give it 5 seconds to initiate download on mobile
+      }
     }
   </script>
 </body>
