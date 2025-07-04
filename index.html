@@ -752,6 +752,33 @@
       width: auto;
     }
 
+    /* 系统时间显示 */
+    #systemTimeDisplay {
+        position: absolute;
+        top: var(--spacing-sm);
+        right: var(--spacing-sm);
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        z-index: 10;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        pointer-events: none; /* 不影响视频点击 */
+        opacity: 1;
+        transition: opacity var(--transition-duration) var(--transition-ease);
+    }
+    #systemTimeDisplay.hidden {
+        opacity: 0;
+    }
+    /* 新增：无背景模式 */
+    #systemTimeDisplay.no-background-time {
+        background: none;
+        text-shadow: none; /* 移除文本阴影以提高无背景时的可读性 */
+    }
+
+
     /* 浮动面板（设置和历史） */
     .drawer-panel {
       position: fixed;
@@ -1651,6 +1678,9 @@
         <button class="btn btn-icon btn-secondary" id="themeToggle" aria-label="切换主题">
           <i class="fas fa-moon"></i>
         </button>
+        <!-- 新增系统时间显示切换按钮 -->
+        <button class="btn btn-icon btn-secondary" id="toggleSystemTimeBtn" aria-label="显示/隐藏系统时间">
+          <i class="fas fa-clock"></i>
         <!-- 头部历史记录按钮 (桌面/移动端都可见) -->
         <button class="btn btn-icon btn-secondary" id="headerHistoryToggleBtn" aria-label="打开历史记录">
           <i class="fas fa-history"></i>
@@ -1658,6 +1688,7 @@
         <!-- 头部设置按钮 (桌面/移动端都可见) -->
         <button class="btn btn-icon btn-secondary" id="headerSettingsToggleBtn" aria-label="打开设置">
           <i class="fas fa-cog"></i>
+        </button>
         </button>
       </div>
     </header>
@@ -1680,6 +1711,8 @@
           <div id="xgplayerContainer" style="display: none;"></div>
 
           <div id="subtitleDisplay" class="subtitle-display" style="display: none;"></div>
+          <!-- 新增系统时间显示元素 -->
+          <div id="systemTimeDisplay"></div>
 
           <!-- 视频内部控制条 -->
           <div id="inVideoControls">
@@ -1732,7 +1765,7 @@
               type="text"
               id="videoURL"
               placeholder="输入视频URL (支持所有主流视频格式)"
-              value="http://cloud.ruiboyun.net/vod/vod3/e0u83v08/index.m3u8"
+              value="https://sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/hls/xgplayer-demo.m3u8"
               aria-label="视频URL输入框"
             />
             <button class="btn btn-primary" id="loadVideoBtn">
@@ -2008,6 +2041,12 @@
     };
     let backgroundSettings = JSON.parse(localStorage.getItem('backgroundSettings')) || { ...defaultBackgroundSettings };
 
+    // 新增：requestAnimationFrame 相关的全局变量
+    let animationFrameId = null; // 用于存储 requestAnimationFrame 的 ID
+    let systemTimeIntervalId = null; // 用于存储 setInterval 的 ID
+    // 修改：系统时间显示模式，可以是 'background', 'no-background', 'hidden'
+    let systemTimeDisplayMode = localStorage.getItem('systemTimeDisplayMode') || 'background';
+
     // 播放器DOM元素引用 (使用 let 声明，方便在 DOMContentLoaded 中赋值)
     let playPauseBtn,
         uploadPlaceholder, videoContainerElement,
@@ -2025,7 +2064,8 @@
         inVideoControls, inVideoPlayPauseBtn, inVideoPlayPauseIcon,
         inVideoSeekSlider, inVideoCurrentTimeDisplay, inVideoDurationDisplay,
         inVideoVolumeSlider, inVideoVolumeIcon, inVideoVolumePercentageDisplay, inVideoFullscreenBtn,
-        loopSingleBtn, loopListBtn, loopShuffleBtn;
+        loopSingleBtn, loopListBtn, loopShuffleBtn,
+        systemTimeDisplayElement, toggleSystemTimeBtn; // 新增系统时间相关元素
 
     // ====================================================================
     // DOMContentLoaded 事件监听器
@@ -2051,6 +2091,8 @@
       subtitleSizeValue = document.getElementById('subtitleSizeValue');
       subtitleColorPicker = document.getElementById('subtitleColorPicker');
       subtitleDisplay = document.getElementById('subtitleDisplay');
+      systemTimeDisplayElement = document.getElementById('systemTimeDisplay'); // 获取系统时间显示元素
+      toggleSystemTimeBtn = document.getElementById('toggleSystemTimeBtn'); // 获取系统时间切换按钮
 
       settingsPanel = document.getElementById('settingsPanel');
       historyPanel = document.getElementById('historyPanel');
@@ -2146,6 +2188,11 @@
 
       // 加载所有保存的设置 (字幕、画面、滤镜、播放速度、背景)
       loadAllSettings();
+
+      // 初始加载系统时间显示状态并启动更新
+      loadSystemTimeVisibility();
+      startSystemTimeUpdate();
+      toggleSystemTimeBtn.addEventListener('click', toggleSystemTimeVisibility); // 绑定按钮事件
 
       // 绑定上传本地视频按钮
       document.getElementById('uploadLocalBtn').addEventListener('click', () => {
@@ -2288,24 +2335,22 @@
       }
 
       // 视频播放时显示控制条并启动计时器
-      // 这里监听的是原生 videoPlayer 的 play 事件，xgplayer 播放时需要单独监听其 play 事件
       nativeVideoPlayer.addEventListener('play', function() {
+        startProgressBarUpdate(); // 启动 requestAnimationFrame 循环
         showControls();
       });
 
       // 视频暂停时保持控制条显示，停止计时器
-      // 这里监听的是原生 videoPlayer 的 pause 事件，xgplayer 播放时需要单独监听其 pause 事件
       nativeVideoPlayer.addEventListener('pause', function () {
-            if (currentPlayingMethod !== 'xgplayer') {
-                // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
-                if (!isSeeking && !isKeyboardSeeking) {
-                    updateStatus('stopped', '播放已暂停');
-                }
-                playPauseIcon.className = 'fas fa-play';
-                inVideoPlayPauseIcon.className = 'fas fa-play';
-                clearTimeout(controlsHideTimeout);
-                inVideoControls.classList.add('controls-visible');
+            stopProgressBarUpdate(); // 停止 requestAnimationFrame 循环
+            // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
+            if (!isSeeking && !isKeyboardSeeking) {
+                updateStatus('stopped', '播放已暂停');
             }
+            playPauseIcon.className = 'fas fa-play';
+            inVideoPlayPauseIcon.className = 'fas fa-play';
+            clearTimeout(controlsHideTimeout);
+            inVideoControls.classList.add('controls-visible');
         });
 
       nativeVideoPlayer.addEventListener('waiting', function () {
@@ -2344,6 +2389,150 @@
           currentTimeDisplay.textContent = formatTime(this.value); // 同步外部时间
       });
     });
+
+    // ====================================================================
+    // 新增：requestAnimationFrame 进度条更新逻辑
+    // ====================================================================
+
+    /**
+     * 启动 requestAnimationFrame 循环来平滑更新进度条和时间显示。
+     */
+    function startProgressBarUpdate() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId); // 取消之前的循环
+        }
+        animationFrameId = requestAnimationFrame(updateProgressBarFrame);
+    }
+
+    /**
+     * 停止 requestAnimationFrame 循环。
+     */
+    function stopProgressBarUpdate() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    /**
+     * requestAnimationFrame 回调函数，用于更新进度条和时间显示。
+     */
+    function updateProgressBarFrame() {
+        if (!activePlayer || activePlayer.paused || isSeeking || isKeyboardSeeking) {
+            // 如果播放器不存在、暂停、正在手动拖动或正在键盘快进/快退，则不更新，并停止循环
+            stopProgressBarUpdate();
+            return;
+        }
+
+        // 确保 duration 是有效数字，避免 NaN
+        const duration = isNaN(activePlayer.duration) || activePlayer.duration === Infinity ? 0 : activePlayer.duration;
+        const currentTime = Math.max(0, Math.min(activePlayer.currentTime, duration)); // 确保当前时间在有效范围内
+
+        // 更新进度条的最大值（如果视频时长变化）
+        if (seekSlider.max !== duration.toString()) {
+            seekSlider.max = duration;
+            inVideoSeekSlider.max = duration;
+            durationDisplay.textContent = formatTime(duration);
+            inVideoDurationDisplay.textContent = formatTime(duration);
+        }
+
+        // 更新当前时间显示和进度条位置
+        seekSlider.value = currentTime;
+        inVideoSeekSlider.value = currentTime;
+        currentTimeDisplay.textContent = formatTime(currentTime);
+        inVideoCurrentTimeDisplay.textContent = formatTime(currentTime);
+
+        if (subtitleActive && currentSubtitleTracks.length > 0) {
+            updateSubtitleDisplay(currentTime);
+        } else {
+            subtitleDisplay.textContent = '';
+            subtitleDisplay.style.display = 'none';
+        }
+
+        // 请求下一帧
+        animationFrameId = requestAnimationFrame(updateProgressBarFrame);
+    }
+
+    // ====================================================================
+    // 新增：系统时间显示逻辑
+    // ====================================================================
+
+    /**
+     * 更新系统时间显示。
+     */
+    function updateSystemTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        systemTimeDisplayElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    /**
+     * 启动系统时间更新计时器。
+     */
+    function startSystemTimeUpdate() {
+        if (systemTimeIntervalId) {
+            clearInterval(systemTimeIntervalId);
+        }
+        updateSystemTime(); // 立即更新一次
+        systemTimeIntervalId = setInterval(updateSystemTime, 1000); // 每秒更新
+    }
+
+    /**
+     * 停止系统时间更新计时器。
+     */
+    function stopSystemTimeUpdate() {
+        if (systemTimeIntervalId) {
+            clearInterval(systemTimeIntervalId);
+            systemTimeIntervalId = null;
+        }
+    }
+
+    /**
+     * 切换系统时间显示可见性。
+     */
+    function toggleSystemTimeVisibility() {
+        if (systemTimeDisplayMode === 'background') {
+            systemTimeDisplayMode = 'no-background';
+            systemTimeDisplayElement.classList.remove('hidden');
+            systemTimeDisplayElement.classList.add('no-background-time');
+            toggleSystemTimeBtn.querySelector('i').className = 'far fa-clock'; // 空心时钟
+        } else if (systemTimeDisplayMode === 'no-background') {
+            systemTimeDisplayMode = 'hidden';
+            systemTimeDisplayElement.classList.add('hidden');
+            systemTimeDisplayElement.classList.remove('no-background-time'); // 确保移除无背景类
+            toggleSystemTimeBtn.querySelector('i').className = 'fas fa-eye-slash'; // 斜杠眼睛
+        } else { // 'hidden'
+            systemTimeDisplayMode = 'background';
+            systemTimeDisplayElement.classList.remove('hidden');
+            systemTimeDisplayElement.classList.remove('no-background-time'); // 确保移除无背景类
+            toggleSystemTimeBtn.querySelector('i').className = 'fas fa-clock'; // 实心时钟
+        }
+        localStorage.setItem('systemTimeDisplayMode', systemTimeDisplayMode);
+    }
+
+    /**
+     * 从 localStorage 加载系统时间可见性状态。
+     */
+    function loadSystemTimeVisibility() {
+        systemTimeDisplayMode = localStorage.getItem('systemTimeDisplayMode') || 'background'; // 默认显示背景模式
+
+        // 应用初始状态
+        if (systemTimeDisplayMode === 'hidden') {
+            systemTimeDisplayElement.classList.add('hidden');
+            systemTimeDisplayElement.classList.remove('no-background-time');
+            toggleSystemTimeBtn.querySelector('i').className = 'fas fa-eye-slash';
+        } else if (systemTimeDisplayMode === 'no-background') {
+            systemTimeDisplayElement.classList.remove('hidden');
+            systemTimeDisplayElement.classList.add('no-background-time');
+            toggleSystemTimeBtn.querySelector('i').className = 'far fa-clock';
+        } else { // 'background'
+            systemTimeDisplayElement.classList.remove('hidden');
+            systemTimeDisplayElement.classList.remove('no-background-time');
+            toggleSystemTimeBtn.querySelector('i').className = 'fas fa-clock';
+        }
+    }
 
     // ====================================================================
     // UI/UX 交互功能
@@ -2385,6 +2574,7 @@
         // 头部按钮
         const headerSettingsToggleBtn = document.getElementById('headerSettingsToggleBtn');
         const headerHistoryToggleBtn = document.getElementById('headerHistoryToggleBtn');
+        const toggleSystemTimeBtn = document.getElementById('toggleSystemTimeBtn'); // 新增
 
         // 检查点击是否在设置面板或其触发按钮之外
         const isClickInsideSettingsPanel = settingsPanel.contains(event.target) ||
@@ -2786,29 +2976,15 @@
     function setupPlayerEvents() {
         // 这些事件监听器绑定到 nativeVideoPlayer 的 timeupdate 事件，
         // 当 xgplayer 活跃时，其自身的 timeupdate 事件会更新 UI
-        nativeVideoPlayer.addEventListener('timeupdate', function () {
-            // 只有当不处于拖动或键盘快进/快退预览状态时，才更新UI
-            if (currentPlayingMethod !== 'xgplayer' && !isSeeking && !isKeyboardSeeking) {
-                seekSlider.value = nativeVideoPlayer.currentTime;
-                inVideoSeekSlider.value = nativeVideoPlayer.currentTime;
-                currentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
-                inVideoCurrentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
-            }
-
-            if (subtitleActive && currentSubtitleTracks.length > 0) {
-                updateSubtitleDisplay(this.currentTime);
-            } else {
-                subtitleDisplay.textContent = '';
-                subtitleDisplay.style.display = 'none';
-            }
-        });
-
+        // timeupdate 事件不再直接更新进度条和时间显示，而是由 requestAnimationFrame 循环处理
         nativeVideoPlayer.addEventListener('loadedmetadata', function() {
             if (currentPlayingMethod !== 'xgplayer') {
+                // 设置进度条最大值和总时长显示
                 seekSlider.max = nativeVideoPlayer.duration;
                 inVideoSeekSlider.max = nativeVideoPlayer.duration;
                 durationDisplay.textContent = formatTime(nativeVideoPlayer.duration);
                 inVideoDurationDisplay.textContent = formatTime(nativeVideoPlayer.duration);
+                // 初始显示当前时间
                 currentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
                 inVideoCurrentTimeDisplay.textContent = formatTime(nativeVideoPlayer.currentTime);
             }
@@ -2822,11 +2998,13 @@
                 uploadPlaceholder.classList.add('hidden');
                 videoContainerElement.classList.add('visible');
                 resetHideTimer();
+                startProgressBarUpdate(); // 启动 requestAnimationFrame 循环
             }
         });
 
         nativeVideoPlayer.addEventListener('pause', function () {
             if (currentPlayingMethod !== 'xgplayer') {
+                stopProgressBarUpdate(); // 停止 requestAnimationFrame 循环
                 // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
                 if (!isSeeking && !isKeyboardSeeking) {
                     updateStatus('stopped', '播放已暂停');
@@ -2864,6 +3042,7 @@
         inVideoSeekSlider.addEventListener('touchend', handleSeekEnd);
 
         seekSlider.addEventListener('input', function() {
+            // 当用户拖动进度条时，立即更新时间显示，但不影响 requestAnimationFrame 的读取
             currentTimeDisplay.textContent = formatTime(this.value);
             inVideoSeekSlider.value = this.value; // 同步视频内部进度条
             inVideoCurrentTimeDisplay.textContent = formatTime(this.value); // 同步视频内部时间
@@ -2892,10 +3071,12 @@
         wasPlayingBeforeSeek = false;
         isSeeking = false;
         isKeyboardSeeking = false; // 确保键盘seek标志也重置
+        startProgressBarUpdate(); // 重新启动 requestAnimationFrame 循环
     }
 
     // Common handler for video ended event
     function handleVideoEnded() {
+        stopProgressBarUpdate(); // 视频结束时停止 requestAnimationFrame 循环
         updateStatus('stopped', '播放已结束');
         // 检查循环模式
         if (currentLoopMode === 'single') {
@@ -2941,6 +3122,7 @@
 
     // Common handler for video error event
     function handleVideoError(err) {
+        stopProgressBarUpdate(); // 播放错误时停止 requestAnimationFrame 循环
         const error = err || (activePlayer && activePlayer.error); // For xgplayer, error object might be passed directly
         let errorMessage = '未知错误';
         if (error) {
@@ -2977,6 +3159,7 @@
     function handleSeekStartCommon() {
         wasPlayingBeforeSeek = !activePlayer.paused; // 记录拖动前是否在播放
         activePlayer.pause(); // 暂停播放
+        stopProgressBarUpdate(); // 暂停时停止 requestAnimationFrame 循环
         updateStatus('loading', '正在缓冲...'); // 更新状态为缓冲
     }
 
@@ -3369,8 +3552,10 @@
                   uploadPlaceholder.classList.add('hidden');
                   videoContainerElement.classList.add('visible');
                   resetHideTimer();
+                  startProgressBarUpdate(); // 启动 requestAnimationFrame 循环
               });
               xgPlayerInstance.on('pause', () => {
+                  stopProgressBarUpdate(); // 停止 requestAnimationFrame 循环
                   // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
                   if (!isSeeking && !isKeyboardSeeking) {
                       updateStatus('stopped', '播放已暂停');
@@ -3383,20 +3568,24 @@
               xgPlayerInstance.on('ended', handleVideoEnded);
               xgPlayerInstance.on('error', handleVideoError);
               xgPlayerInstance.on('timeupdate', () => {
-                  // 只有当不处于拖动或键盘快进/快退预览状态时，才更新UI
-                  if (!isSeeking && !isKeyboardSeeking) {
-                      seekSlider.value = activePlayer.currentTime;
-                      inVideoSeekSlider.value = activePlayer.currentTime;
-                      currentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
-                      inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
-                  }
-
+                  // timeupdate 事件不再直接更新进度条和时间显示，而是由 requestAnimationFrame 循环处理
+                  // 但字幕更新仍然可以在这里进行，或者也可以移到 requestAnimationFrame
                   if (subtitleActive && currentSubtitleTracks.length > 0) {
                       updateSubtitleDisplay(activePlayer.currentTime);
                   } else {
                       subtitleDisplay.textContent = '';
                       subtitleDisplay.style.display = 'none';
                   }
+              });
+              xgPlayerInstance.on('loadeddata', () => {
+                  // 设置进度条最大值和总时长显示
+                  seekSlider.max = activePlayer.duration;
+                  inVideoSeekSlider.max = activePlayer.duration;
+                  durationDisplay.textContent = formatTime(activePlayer.duration);
+                  inVideoDurationDisplay.textContent = formatTime(activePlayer.duration);
+                  // 初始显示当前时间
+                  currentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
+                  inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
               });
               xgPlayerInstance.on('volumechange', () => {
                   // 同步音量滑块和图标
@@ -3668,6 +3857,8 @@
      * @param {boolean} keepPlaceholderHidden - 是否保持占位符隐藏。
      */
     function stopPlaybackInternal(keepPlaceholderHidden = false) {
+      stopProgressBarUpdate(); // 停止 requestAnimationFrame 循环
+
       // 停止当前活跃的播放器
       if (activePlayer) {
           activePlayer.pause();
@@ -3792,7 +3983,7 @@
         }
         if (lines[i].trim().startsWith('NOTE') || lines[i].trim().startsWith('STYLE')) {
           i++;
-          while (i < lines.length && lines[i].trim() !== '') i++;
+          while (i < lines.length && lines[i].trim() === '') i++;
           while (i < lines.length && lines[i].trim() === '') i++;
           continue;
         }
@@ -3890,6 +4081,8 @@
       subtitleDisplay.style.display = 'block';
       subtitleDisplay.textContent = '';
       if (activePlayer) {
+        // 当有字幕时，确保 updateProgressBarFrame 会调用 updateSubtitleDisplay
+        // 或者直接在这里调用一次，确保立即显示
         updateSubtitleDisplay(activePlayer.currentTime);
       }
       applySubtitleSettings();
@@ -4424,7 +4617,8 @@
 
                 const seekAmount = (event.key === 'ArrowRight' ? 5 : -5); // 每次快进/快退 5 秒
                 // 更新预览时间，并确保不超出视频范围
-                keyboardSeekCurrentTime = Math.max(0, Math.min(activePlayer.duration, keyboardSeekCurrentTime + seekAmount));
+                const duration = isNaN(activePlayer.duration) || activePlayer.duration === Infinity ? 0 : activePlayer.duration;
+                keyboardSeekCurrentTime = Math.max(0, Math.min(duration, keyboardSeekCurrentTime + seekAmount));
 
                 // 更新UI显示预览时间
                 seekSlider.value = keyboardSeekCurrentTime;
