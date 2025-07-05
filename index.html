@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer"> <!-- 新增：解决部分视频源的防盗链问题 -->
   <title>沉浸式视频播放器</title>
   <!-- 引入外部资源：Font Awesome 和 Inter 字体 -->
   <link href="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-0-y/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <!-- HLS.js 和 FLV.js 库 -->
+  <!-- HLS.js 库 -->
   <script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-0-y/hls.js/8.0.0-beta.3/hls.js"></script>
-  <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-0-y/flv.js/1.6.2/flv.js"></script>
   <!-- xgplayer 和 xgplayer-flv 库 -->
   <link rel="stylesheet" href="https://unpkg.byted-static.com/xgplayer/3.0.21/dist/index.min.css"/>
   <script charset="utf-8" src="https://unpkg.byted-static.com/xgplayer/3.0.21/dist/index.min.js"></script>
@@ -778,7 +778,6 @@
         text-shadow: none; /* 移除文本阴影以提高无背景时的可读性 */
     }
 
-
     /* 浮动面板（设置和历史） */
     .drawer-panel {
       position: fixed;
@@ -1292,13 +1291,6 @@
       border-color: var(--border-dark);
       background: rgba(255, 255, 255, 0.05);
     }
-    .custom-input-color::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-    .custom-input-color::-webkit-color-swatch {
-      border: none;
-      border-radius: 8px; /* Match outer border-radius */
-    }
     .custom-input-color:hover {
       background: rgba(0, 0, 0, 0.1);
       transform: translateY(-2px);
@@ -1705,7 +1697,7 @@
 
         <!-- 视频播放器容器，默认隐藏 -->
         <div class="video-container" id="videoContainer">
-          <!-- 原生 video 标签，用于 HLS, FLV.js, 原生 MP4 等 -->
+          <!-- 原生 video 标签，用于 HLS, 原生 MP4 等 -->
           <video id="videoPlayer"></video>
           <!-- xgplayer 容器，默认隐藏，用于 FLV 直播等特殊场景 -->
           <div id="xgplayerContainer" style="display: none;"></div>
@@ -1966,13 +1958,12 @@
     // 全局变量和初始化
     // ====================================================================
     let hlsInstance = null;
-    let flvPlayer = null;
-    let xgPlayerInstance = null; // 新增 xgplayer 实例
+    let xgPlayerInstance = null; // xgplayer 实例
 
     let nativeVideoPlayer = null; // 引用原生的 <video> 元素
     let xgplayerContainerElement = null; // 引用 xgplayer 的 div 容器
     let activePlayer = null; // 当前活跃的播放器 API (可能是 nativeVideoPlayer 或 xgPlayerInstance)
-    let currentPlayingMethod = 'none'; // 'none', 'native', 'hls', 'flvjs', 'xgplayer'
+    let currentPlayingMethod = 'none'; // 'none', 'native', 'hls', 'xgplayer'
 
     let currentVideoUrl = null; // 当前播放视频的URL (可以是网络URL或blob:URL)
     let currentLocalFileObject = null; // 存储当前播放的本地文件对象
@@ -3513,13 +3504,14 @@
       videoContainerElement.classList.add('visible');
 
       const extension = getFileExtension(url);
-      const isFlvStream = (extension === 'flv' || url.includes('.flv'));
-      const isM3U8Stream = (extension === 'm3u8' || url.includes('.m3u8'));
-      // 这是一个启发式判断，用于识别类似用户提供示例的直播流
-      const isLiveStreamExample = url.includes('douyincdn.com') && isFlvStream;
+      const isFlv = (extension === 'flv' || url.includes('.flv'));
+      const isM3U8 = (extension === 'm3u8' || url.includes('.m3u8'));
+      const isMkv = (extension === 'mkv' || url.includes('.mkv')); // 新增：检查是否为MKV
+      const isLiveStreamExample = url.includes('douyincdn.com') && isFlv; // 特定直播流示例
 
-      // 优先使用 xgplayer 处理 FLV 和特定的直播流
-      if (isFlvStream || isLiveStreamExample) {
+      // 决定是否使用 xgplayer
+      // FLV、特定直播流和 MKV 优先使用 xgplayer
+      if (isFlv || isLiveStreamExample || isMkv) {
           currentPlayingMethod = 'xgplayer';
           nativeVideoPlayer.style.display = 'none'; // 隐藏原生 video
           xgplayerContainerElement.style.display = 'block'; // 显示 xgplayer 容器
@@ -3536,11 +3528,18 @@
                   url: url,
                   playsinline: true,
                   fluid: true, // 响应式尺寸
-                  plugins: [FlvPlayer], // 使用 FlvPlayer 插件处理 FLV
-                  isLive: isLiveStreamExample, // 设置为 true 表示直播流
                   controls: false, // 我们使用自定义控件，禁用 xgplayer 的默认控件
                   autoplay: true, // 让 xgplayer 自动播放
+                  isLive: isLiveStreamExample, // 设置为 true 表示直播流
               };
+
+              // 仅在是 FLV 流或特定直播流时才添加 FlvPlayer 插件
+              if (isFlv || isLiveStreamExample) {
+                  xgplayerConfig.plugins = [FlvPlayer];
+              }
+              // 对于 MKV，xgplayer 依赖于浏览器对 Media Source Extensions (MSE) 的原生支持，
+              // 通常不需要额外的插件，除非是播放非常特殊的编码。
+
               xgPlayerInstance = new Player(xgplayerConfig);
               activePlayer = xgPlayerInstance; // 设置活跃播放器为 xgplayer 实例
 
@@ -3627,7 +3626,7 @@
               applyVideoFilters();
 
               xgPlayerInstance.play().catch(e => {
-                  console.warn("XGPlayer 自动播放被阻止:", e);
+                  console.warn("XGPlayer 自动播放被阻止或播放失败:", e);
                   updateStatus('stopped', '点击播放');
                   playPauseIcon.className = 'fas fa-play';
                   inVideoPlayPauseIcon.className = 'fas fa-play';
@@ -3636,11 +3635,12 @@
           } catch (e) {
               console.error('XGPlayer 初始化失败，尝试原生播放:', e);
               // 如果 xgplayer 失败，则回退到原生播放
-              playWithNativePlayer(url, isM3U8Stream);
+              // 注意：原生播放器对 MKV 的支持可能有限
+              playWithNativePlayer(url, isM3U8);
           }
       } else {
           // 对于 HLS、MP4、WebM 等，使用原生播放器
-          playWithNativePlayer(url, isM3U8Stream);
+          playWithNativePlayer(url, isM3U8);
       }
 
       // 添加到历史记录 (只有网络 URL 才添加到历史记录，本地视频已在 playLocalVideo 中添加)
@@ -3657,21 +3657,17 @@
       }
     }
 
-    // 辅助函数，用于处理原生/HLS/FLV.js 播放逻辑
-    function playWithNativePlayer(url, isM3U8Stream) {
+    // 辅助函数，用于处理原生/HLS 播放逻辑
+    function playWithNativePlayer(url, isM3U8) {
         currentPlayingMethod = 'native'; // 默认为原生
         nativeVideoPlayer.style.display = 'block'; // 显示原生 video
         xgplayerContainerElement.style.display = 'none'; // 隐藏 xgplayer 容器
         activePlayer = nativeVideoPlayer; // 设置活跃播放器为原生
 
-        // 销毁之前的 HLS.js 和 FLV.js 实例
+        // 销毁之前的 HLS.js 实例
         if (hlsInstance) {
             hlsInstance.destroy();
             hlsInstance = null;
-        }
-        if (flvPlayer) {
-            flvPlayer.destroy();
-            flvPlayer = null;
         }
 
         if (url.indexOf('rtmp://') === 0) {
@@ -3682,7 +3678,7 @@
             return;
         }
 
-        if (isM3U8Stream) {
+        if (isM3U8) {
             currentPlayingMethod = 'hls';
             if (Hls.isSupported()) {
                 // HLS.js 配置优化
@@ -3873,14 +3869,10 @@
           }
       }
 
-      // 销毁 HLS.js 和 FLV.js 实例
+      // 销毁 HLS.js 实例
       if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
-      }
-      if (flvPlayer) {
-        flvPlayer.destroy();
-        flvPlayer = null;
       }
       // 销毁 xgplayer 实例
       if (xgPlayerInstance) {
@@ -4450,6 +4442,13 @@
     }
 
     /**
+     * 判断是否为移动设备。
+     */
+    function isMobileDevice() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    /**
      * 切换全屏。
      */
     function toggleFullscreen() {
@@ -4460,23 +4459,26 @@
             if (currentPlayingMethod === 'xgplayer' && xgPlayerInstance && xgPlayerInstance.fullscreen) {
                 xgPlayerInstance.fullscreen.exit();
             } else {
-                // 对于原生视频，退出文档全屏
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) { // Firefox
+                } else if (document.mozCancelFullScreen) {
                     document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+                } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) { // IE/Edge
+                } else if (document.msExitFullscreen) {
                     document.msExitFullscreen();
                 }
+            }
+            // 退出全屏时，如果是在移动设备上，解锁屏幕方向
+            if (isMobileDevice() && screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+                console.log('Screen orientation unlocked.');
             }
         } else {
             // 不处于全屏模式，请求全屏
             if (currentPlayingMethod === 'xgplayer' && xgPlayerInstance && xgPlayerInstance.fullscreen) {
                 xgPlayerInstance.fullscreen.request();
             } else {
-                // 对于原生视频，请求 videoContainerElement 全屏
                 if (videoContainerElement.requestFullscreen) {
                     videoContainerElement.requestFullscreen();
                 } else if (videoContainerElement.mozRequestFullScreen) {
@@ -4486,6 +4488,14 @@
                 } else if (videoContainerElement.msRequestFullscreen) {
                     videoContainerElement.msRequestFullscreen();
                 }
+            }
+            // 进入全屏时，如果是在移动设备上，尝试锁定屏幕方向为横屏
+            if (isMobileDevice() && screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').then(() => {
+                    console.log('Screen orientation locked to landscape.');
+                }).catch((err) => {
+                    console.warn('Failed to lock screen orientation:', err);
+                });
             }
         }
     }
