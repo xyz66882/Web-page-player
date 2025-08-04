@@ -1310,16 +1310,17 @@
     }
 
     /* 画面调节按钮并排优化 */
-    .setting-group .btn-group {
-        flex-wrap: nowrap; /* 强制不换行 */
-        overflow-inline: auto; /* 逻辑属性替换 */
-        justify-content: space-between; /* 按钮之间均匀分布 */
+    .setting-group > .btn-group { 
+        flex-wrap: nowrap; /* 不换行 */
+        justify-content: space-between; /* 均匀分布按钮 */
     }
-    .setting-group .btn-group .btn {
-        flex: 1 1 0; /* 均匀分配空间 */
-        min-width: unset; /* 取消最小宽度限制 */
+
+    .setting-group > .btn-group .btn {
+        flex: 1; /* 均匀分配空间 */
+        min-width: 0; /* 允许按钮缩小至最小尺寸 */
         padding: 8px 12px; /* 调整内边距 */
         font-size: var(--font-size-xs); /* 调整字体大小 */
+        white-space: nowrap; /* 文本不换行 */
     }
 
     /* 历史记录循环模式按钮组 */
