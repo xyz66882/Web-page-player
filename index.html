@@ -821,7 +821,7 @@
     }
 
     .drawer-header {
-      padding: 0 0 var(--spacing-md) 0; /* 调整内边距，移除左右，只留底部 */
+      padding: 0 0 var(--spacing-md) 0; /* 调整内边距，移除左右，只留底部 可使用 `padding-block-end` */
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -894,9 +894,9 @@
     }
 
     .setting-group {
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 1px solid var(--border-light);
+      margin-block-end: var(--spacing-lg); /* 逻辑属性替换 */
+      padding-block-end: var(--spacing-md); /* 逻辑属性替换 */
+      border-block-end: 1px solid var(--border-light); /* 逻辑属性替换 */
       transition: border-color var(--transition-duration) var(--transition-ease);
     }
 
@@ -905,14 +905,14 @@
     }
 
     .setting-group:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
+      border-block-end: none; /* 逻辑属性替换 */
+      margin-block-end: 0; /* 逻辑属性替换 */
+      padding-block-end: 0; /* 逻辑属性替换 */
     }
 
     .setting-group h4 {
       font-size: var(--font-size-md);
-      margin-bottom: var(--spacing-md);
+      margin-block-end: var(--spacing-md); /* 逻辑属性替换 */
       color: var(--text-dark);
       transition: color var(--transition-duration) var(--transition-ease);
     }
@@ -925,7 +925,7 @@
       display: flex;
       align-items: center;
       gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-sm);
+      margin-block-end: var(--spacing-sm); /* 逻辑属性替换 */
     }
 
     .slider-group label {
@@ -972,7 +972,7 @@
     .slider-group span {
       font-size: var(--font-size-sm);
       min-width: 40px;
-      text-align: right;
+      text-align: end; /* 逻辑属性替换 */
       color: var(--text-dark);
       transition: color var(--transition-duration) var(--transition-ease);
     }
@@ -1024,12 +1024,12 @@
 
     /* 历史记录列表 */
     .history-list {
-      padding-top: var(--spacing-sm);
+      padding-block-start: var(--spacing-sm); /* 逻辑属性替换 */
     }
 
     .history-item {
-      padding: var(--spacing-sm) 0;
-      border-bottom: 1px solid var(--border-light);
+      padding-block: var(--spacing-sm); /* 逻辑属性替换 */
+      border-block-end: 1px solid var(--border-light); /* 逻辑属性替换 */
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -1047,7 +1047,7 @@
     }
 
     .history-item:last-child {
-      border-bottom: none;
+      border-block-end: none; /* 逻辑属性替换 */
     }
 
     .history-item .title-wrapper {
@@ -1095,7 +1095,7 @@
     .history-item .actions {
       display: flex;
       gap: var(--spacing-xs);
-      margin-left: auto;
+      margin-inline-start: auto; /* 逻辑属性替换 */
       flex-shrink: 0;
     }
 
@@ -1192,7 +1192,7 @@
       outline: none;
       cursor: pointer;
       transition: background var(--transition-duration) var(--transition-ease);
-      min-width: 80px;
+      min-width: 80px; /* 确保滑块有最小宽度 */
     }
     body.dark-mode .subtitle-size-color-controls .subtitle-range-slider {
       background: rgba(255, 255, 255, 0.1);
@@ -1248,13 +1248,13 @@
       -webkit-appearance: spinner-buttons;
       opacity: 1; /* Make them visible */
       cursor: pointer;
-      height: auto;
-      width: 16px;
-      margin: 0;
-      padding: 0;
+      height: auto; /* Adjust height */
+      width: 16px; /* Adjust width */
+      margin: 0; /* Remove default margin */
+      padding: 0; /* Remove default padding */
       background: transparent;
       border: none;
-      color: var(--text-dark);
+      color: var(--text-dark); /* Color of the arrows */
     }
     body.dark-mode .custom-input-number::-webkit-inner-spin-button,
     body.dark-mode .custom-input-number::-webkit-outer-spin-button {
@@ -1274,18 +1274,18 @@
 
     /* 颜色选择器样式，使其看起来像按钮 */
     .custom-input-color {
-      width: 40px;
-      height: 40px;
-      min-width: 40px;
-      padding: 0;
+      width: 40px; /* Fixed width */
+      height: 40px; /* Fixed height */
+      min-width: 40px; /* Ensure it doesn't shrink */
+      padding: 0; /* No padding inside for color picker */
       border: 1px solid var(--border-light);
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px; /* Match number input border-radius */
+      background: rgba(0, 0, 0, 0.05); /* Match btn-secondary background */
       cursor: pointer;
-      overflow: hidden;
+      overflow: hidden; /* Hide default color picker border */
       transition: all var(--transition-duration) var(--transition-ease);
-      -webkit-appearance: none;
-      appearance: none;
+      -webkit-appearance: none; /* Remove default styles */
+      appearance: none; /* Remove default styles */
     }
     body.dark-mode .custom-input-color {
       border-color: var(--border-dark);
@@ -1306,40 +1306,42 @@
     }
     /* 修复重置滤镜按钮与预设按钮重叠 */
     #resetFilterBtn {
-        margin-top: var(--spacing-md);
+        margin-block-start: var(--spacing-md); /* 逻辑属性替换 */
     }
 
     /* 画面调节按钮并排优化 */
     .setting-group .btn-group {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        justify-content: space-between;
+        flex-wrap: nowrap; /* 强制不换行 */
+        overflow-inline: auto; /* 逻辑属性替换 */
+        justify-content: space-between; /* 按钮之间均匀分布 */
     }
     .setting-group .btn-group .btn {
-        flex: 1 1 0;
-        min-width: unset;
-        padding: 8px 12px;
-        font-size: var(--font-size-xs);
+        flex: 1 1 0; /* 均匀分配空间 */
+        min-width: unset; /* 取消最小宽度限制 */
+        padding: 8px 12px; /* 调整内边距 */
+        font-size: var(--font-size-xs); /* 调整字体大小 */
     }
 
     /* 历史记录循环模式按钮组 */
     .history-loop-controls {
       display: flex;
       gap: var(--spacing-sm);
-      flex-wrap: nowrap;
-      justify-content: flex-end;
-      padding-bottom: var(--spacing-sm);
-      -webkit-overflow-scrolling: touch;
-      width: 100%;
+      flex-wrap: nowrap; /* 强制不换行 */
+      /* overflow-x: auto; /* 移除此行，以防止水平滚动 */
+      justify-content: flex-end; /* 按钮靠右对齐 */
+      padding-block-end: var(--spacing-sm); /* 逻辑属性替换 */
+      -webkit-overflow-scrolling: touch; /* 移动端平滑滚动 */
+      width: 100%; /* 确保占据可用宽度 */
     }
     .history-loop-controls .btn {
-      flex: 1 1 0;
-      min-width: unset;
-      padding: 8px 12px;
-      font-size: var(--font-size-xs);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      /* flex-shrink: 0; /* 移除此行，允许按钮收缩 */
+      flex: 1 1 0; /* 允许按钮收缩和增长，基础宽度为0 */
+      min-width: unset; /* 确保没有最小宽度限制 */
+      padding: 8px 12px; /* 调整按钮内边距 */
+      font-size: var(--font-size-xs); /* 调整字体大小 */
+      white-space: nowrap; /* 确保文本不换行 */
+      overflow: hidden; /* 隐藏溢出文本 */
+      text-overflow: ellipsis; /* 溢出文本显示省略号 */
     }
 
     /* 响应式设计 */
@@ -1387,7 +1389,7 @@
       }
 
       #topPlayerControls {
-        padding: 0;
+        padding: 0; /* 移除额外内边距 */
       }
 
       .time-display {
@@ -1416,13 +1418,13 @@
 
       .drawer-panel {
         width: 280px;
-        padding: var(--spacing-sm);
+        padding: var(--spacing-sm); /* 调整面板内边距 */
       }
 
       .drawer-header {
         font-size: var(--font-size-md);
-        padding: 0 0 var(--spacing-sm) 0;
-        margin-bottom: var(--spacing-sm);
+        padding-block-end: var(--spacing-sm); /* 逻辑属性替换 */
+        margin-block-end: var(--spacing-sm); /* 逻辑属性替换 */
       }
 
       .drawer-header .close-btn {
@@ -1430,7 +1432,7 @@
       }
 
       .drawer-content {
-        padding: 0;
+        padding: 0; /* 移除额外内边距 */
       }
 
       .setting-group h4 {
@@ -1459,7 +1461,7 @@
 
       /* 字幕控制组在平板上 */
       .subtitle-size-color-controls {
-        flex-basis: auto;
+        flex-basis: auto; /* 自动调整宽度 */
         flex-grow: 1;
       }
     }
@@ -1472,7 +1474,7 @@
       #app-container {
         width: 100%;
         min-height: auto;
-        border-radius: 0;
+        border-radius: 0; /* 移动端全屏 */
         box-shadow: none;
       }
 
@@ -1481,7 +1483,7 @@
       }
 
       .logo h1 {
-        display: none;
+        display: none; /* 移动端隐藏标题，只显示图标 */
       }
 
       .header-actions {
@@ -1490,7 +1492,7 @@
 
       .header-actions #headerHistoryToggleBtn,
       .header-actions #headerSettingsToggleBtn {
-        display: flex;
+        display: flex; /* 确保它们在头部可见 */
       }
 
       .btn {
@@ -1511,9 +1513,9 @@
 
       /* 统一控制行布局 */
       .control-row {
-        flex-direction: column;
+        flex-direction: column; /* 默认堆叠 */
         align-items: flex-start;
-        gap: var(--spacing-sm);
+        gap: var(--spacing-sm); /* 统一间距 */
       }
 
       /* 特殊处理播放器顶部控制行，保持一行 */
@@ -1521,30 +1523,30 @@
         flex-direction: row;
         justify-content: space-between;
         width: 100%;
-        gap: var(--spacing-xs);
+        gap: var(--spacing-xs); /* 缩小间距 */
       }
       #topPlayerControls .btn-icon {
-        width: 36px;
+        width: 36px; /* 稍微大一点，方便点击 */
         height: 36px;
       }
       #topPlayerControls .time-display {
-        min-width: 40px;
+        min-width: 40px; /* 确保时间显示完整 */
       }
       #topPlayerControls .volume-slider {
         width: 60px;
       }
       #topPlayerControls #volumePercentageDisplay {
-        min-width: 30px;
+        min-width: 30px; /* 适应更小的音量百分比显示 */
       }
 
       /* 视频内部控制条在移动端始终显示 */
       #inVideoControls {
-        background: rgba(0, 0, 0, 0.8);
-        padding: var(--spacing-xs);
-        gap: var(--spacing-xs);
-        flex-wrap: nowrap;
-        overflow-x: hidden;
-        justify-content: space-between;
+        background: rgba(0, 0, 0, 0.8); /* 移动端背景更实 */
+        padding: var(--spacing-xs); /* 最小化内边距 */
+        gap: var(--spacing-xs); /* 最小化元素间距 */
+        flex-wrap: nowrap; /* 强制不换行 */
+        overflow-inline: hidden; /* 逻辑属性替换 */
+        justify-content: space-between; /* 均匀分布 */
       }
       #inVideoControls .btn-icon {
         width: 32px;
@@ -1553,87 +1555,87 @@
         flex-shrink: 0;
       }
       #inVideoControls .time-display {
-        font-size: 10px;
-        min-width: 30px;
+        font-size: 10px; /* 进一步缩小字体 */
+        min-width: 30px; /* 确保有最小宽度 */
         flex-shrink: 0;
       }
       #inVideoControls .seek-slider {
         flex-grow: 1;
-        min-width: 40px;
+        min-width: 40px; /* 确保有最小宽度 */
       }
       #inVideoControls .volume-controls {
         flex-shrink: 0;
-        gap: 2px;
+        gap: 2px; /* 缩小音量控制内部间距 */
       }
       #inVideoControls .volume-controls i {
-          font-size: 14px;
+          font-size: 14px; /* 缩小音量图标 */
       }
       #inVideoControls .volume-slider {
-        width: 30px;
+        width: 30px; /* 进一步缩小 */
       }
       #inVideoControls #inVideoVolumePercentageDisplay {
-        font-size: 10px;
+        font-size: 10px; /* 进一步缩小字体 */
         min-width: 20px;
       }
 
       /* 输入组和文件上传按钮 */
       .input-group,
       .file-input-wrapper {
-        width: 100%;
+        width: 100%; /* 占据整行 */
       }
       .input-group input[type="text"],
       .input-group .btn,
       .file-input-wrapper .btn {
-        width: 100%;
+        width: 100%; /* 内部元素也占据整行 */
         min-width: unset;
       }
 
       /* 按钮组 */
       .btn-group {
         width: 100%;
-        justify-content: space-between;
-        gap: var(--spacing-xs);
+        justify-content: space-between; /* 按钮之间均匀分布 */
+        gap: var(--spacing-xs); /* 缩小按钮组内部间距 */
       }
       .btn-group .btn {
-        flex: 1 1 auto;
+        flex: 1 1 auto; /* 自动分配宽度 */
         min-width: unset;
-        padding: 8px 10px;
-        font-size: var(--font-size-xs);
+        padding: 8px 10px; /* 调整按钮内边距 */
+        font-size: var(--font-size-xs); /* 调整字体大小 */
       }
 
       /* 字幕控制组在手机上 */
       .subtitle-controls-group {
-        flex-direction: column;
+        flex-direction: column; /* 堆叠排列 */
         align-items: flex-start;
         width: 100%;
       }
       .subtitle-controls-group .btn {
-        width: 100%;
+        width: 100%; /* 按钮占据整行 */
       }
       .subtitle-size-color-controls {
-        flex-direction: row;
+        flex-direction: row; /* 保持在同一行 */
         flex-wrap: wrap;
         width: 100%;
-        justify-content: flex-start;
-        gap: var(--spacing-sm);
+        justify-content: flex-start; /* 左对齐 */
+        gap: var(--spacing-sm); /* 保持内部间距 */
       }
       .subtitle-size-color-controls .subtitle-label {
-        flex-basis: auto;
+        flex-basis: auto; /* 允许标签自适应 */
         min-width: unset;
       }
       .subtitle-size-color-controls .subtitle-range-slider {
-        flex-grow: 1;
-        min-width: 60px;
+        flex-grow: 1; /* 滑块占据可用空间 */
+        min-width: 60px; /* 调整最小宽度 */
       }
       .input-with-unit {
-        flex-shrink: 0;
+        flex-shrink: 0; /* 防止收缩 */
       }
       .custom-input-number {
-        width: 50px;
-        padding: 4px 8px;
+        width: 50px; /* 调整宽度 */
+        padding: 4px 8px; /* 调整内边距 */
       }
       .custom-input-color {
-        width: 36px;
+        width: 36px; /* 调整大小 */
         height: 36px;
         min-width: 36px;
       }
@@ -1645,11 +1647,11 @@
 
       /* 历史记录循环模式按钮组在移动端 */
       .history-loop-controls {
-        justify-content: space-between;
-        gap: var(--spacing-xs);
+        justify-content: space-between; /* 均匀分布 */
+        gap: var(--spacing-xs); /* 缩小间距 */
       }
       .history-loop-controls .btn {
-        flex: 1 1 auto;
+        flex: 1 1 auto; /* 自动分配宽度 */
         min-width: unset;
         font-size: var(--font-size-xs);
         padding: 6px 8px;
@@ -1772,13 +1774,13 @@
             <button class="btn btn-success" id="uploadLocalBtn">
               <i class="fas fa-upload"></i> 上传本地视频
             </button>
-            <!-- 修改 fileInput, 添加 multiple 属性 -->
+            <!-- 修改：添加 multiple 属性以支持批量上传 -->
             <input
               type="file"
               id="fileInput"
-              accept="video/*, .srt, .vtt"
-              aria-label="选择本地视频或字幕文件"
+              accept="video/*"
               multiple
+              aria-label="选择本地视频文件"
             />
           </div>
         </div>
@@ -1966,13 +1968,16 @@
     let currentPlayingMethod = 'none'; // 'none', 'native', 'hls', 'xgplayer'
 
     let currentVideoUrl = null; // 当前播放视频的URL (可以是网络URL或blob:URL)
-    let currentBlobUrl = null; // 新增：专门用于跟踪当前活跃的 blob:URL，以便于撤销
-
-    // 新增: 在当前会话中存储本地上传的File对象 { fileName: FileObject }.
-    // 注意：File对象无法跨会话持久化，因此页面刷新后此Map会清空。
-    let sessionLocalFiles = new Map();
 
     let playbackHistory = JSON.parse(localStorage.getItem('playbackHistory')) || []; // 播放历史记录
+    // 修复：确保所有 local 类型且没有 fileObject 的历史记录条目，其 fileObject 属性被显式设置为 null
+    playbackHistory = playbackHistory.map(item => {
+        if (item.type === 'local' && item.url.startsWith('blob:') && !item.fileObject) {
+            item.fileObject = null; // 显式设置为 null 表示 File 对象已丢失
+        }
+        return item;
+    });
+
     let currentSubtitleTracks = []; // 存储解析后的字幕对象 { start, end, text }
     let subtitleActive = false; // 控制自定义字幕显示是否激活
     let currentSubtitleFileName = null; // 当前加载的字幕文件名
@@ -2000,6 +2005,7 @@
     // 字幕设置的默认值
     const defaultSubtitleSettings = {
       fontSize: 20,
+      // 使用CSS逻辑属性
       color: '#FFFFFF',
     };
     let currentSubtitleSettings = JSON.parse(localStorage.getItem('subtitleSettings')) || defaultSubtitleSettings;
@@ -2060,11 +2066,11 @@
         inVideoSeekSlider, inVideoCurrentTimeDisplay, inVideoDurationDisplay,
         inVideoVolumeSlider, inVideoVolumeIcon, inVideoVolumePercentageDisplay, inVideoFullscreenBtn,
         loopSingleBtn, loopListBtn, loopShuffleBtn,
-        systemTimeDisplayElement, toggleSystemTimeBtn, fileInput; // 新增 fileInput 引用
+        systemTimeDisplayElement, toggleSystemTimeBtn; // 新增系统时间相关元素
 
-    // ===================================
+    // ====================================================================
     // DOMContentLoaded 事件监听器
-    // ===================================
+    // ====================================================================
     document.addEventListener('DOMContentLoaded', function () {
       // 获取DOM元素引用
       nativeVideoPlayer = document.getElementById('videoPlayer'); // 原生 video 元素
@@ -2088,7 +2094,6 @@
       subtitleDisplay = document.getElementById('subtitleDisplay');
       systemTimeDisplayElement = document.getElementById('systemTimeDisplay'); // 获取系统时间显示元素
       toggleSystemTimeBtn = document.getElementById('toggleSystemTimeBtn'); // 获取系统时间切换按钮
-      fileInput = document.getElementById('fileInput'); // 获取文件输入选择器
 
       settingsPanel = document.getElementById('settingsPanel');
       historyPanel = document.getElementById('historyPanel');
@@ -2121,9 +2126,7 @@
       backgroundBlurSlider = document.getElementById('backgroundBlurSlider');
       backgroundBlurValueSpan = document.getElementById('backgroundBlurValue');
       applyBackgroundBtn = document.getElementById('applyBackgroundBtn');
-      // Fix: Renamed id to resetBackgroundBtn as per original HTML
       resetBackgroundBtn = document.getElementById('resetBackgroundBtn');
-
 
       // 头部切换按钮
       headerSettingsToggleBtn = document.getElementById('headerSettingsToggleBtn');
@@ -2155,10 +2158,10 @@
       // 设置拖放区域功能
       setupDragAndDrop();
 
-      // 点击上传占位符区域触发文件选择 (现在支持多选，通过 fileInput.click() 触发)
+      // 点击上传占位符区域触发文件选择
       uploadPlaceholder.addEventListener('click', () => {
-          if (!videoContainerElement.classList.contains('visible') || currentPlayingMethod === 'none') {
-              fileInput.click();
+          if (!videoContainerElement.classList.contains('visible')) {
+              document.getElementById('fileInput').click();
           }
       });
 
@@ -2192,9 +2195,9 @@
       startSystemTimeUpdate();
       toggleSystemTimeBtn.addEventListener('click', toggleSystemTimeVisibility); // 绑定按钮事件
 
-      // 绑定上传本地视频按钮 (通过点击触发 fileInput 元素)
+      // 绑定上传本地视频按钮
       document.getElementById('uploadLocalBtn').addEventListener('click', () => {
-        fileInput.click();
+        document.getElementById('fileInput').click();
       });
 
       // 绑定上传字幕按钮
@@ -2202,19 +2205,20 @@
         uploadSubtitleFile();
       });
 
-      // 监听本地文件选择 (现在由 handleFileSelection 处理多文件)
-      fileInput.addEventListener('change', function () {
-        handleFileSelection(this.files);
-        this.value = ''; // 清空，允许重复上传相同或不同文件也触发
+      // 监听本地视频文件选择
+      // 修改：接受 FileList 以支持批量上传
+      document.getElementById('fileInput').addEventListener('change', function () {
+        if (this.files && this.files.length > 0) {
+          playLocalVideo(this.files); // 传递 FileList
+          this.value = ''; // 清空，允许重复上传同一个文件也触发
+        }
       });
 
       // 绑定加载视频按钮的点击事件 (取代了原来的 playPauseBtn 的加载功能)
       document.getElementById('loadVideoBtn').addEventListener('click', () => {
         const inputUrl = document.getElementById('videoURL').value.trim();
-        if (inputUrl && !inputUrl.startsWith('本地文件:')) { // 阻止直接加载“本地文件:”文本
+        if (inputUrl) {
           play(inputUrl);
-        } else if (inputUrl.startsWith('本地文件:')) {
-            alert('要播放本地文件，请点击“上传本地视频”或拖放文件。');
         } else {
           alert('请输入视频URL！');
         }
@@ -2306,7 +2310,8 @@
         videoContainerElement.addEventListener('mouseleave', resetHideTimer);
         // PC端点击视频区域播放/暂停
         nativeVideoPlayer.addEventListener('click', togglePlayPause); // 点击原生视频播放/暂停
-        // xgplayer 会有自己的点击播放/暂停行为，或者可以通过 xgplayerInstance.on('click', togglePlayPause) 绑定
+        // 新增：PC端点击xgplayer容器区域播放/暂停，确保xgplayer激活时也能方便操作
+        xgplayerContainerElement.addEventListener('click', togglePlayPause);
 
         // 确保在控制条元素上移动鼠标也能保持显示
         inVideoControls.addEventListener('mousemove', showControls);
@@ -2388,9 +2393,9 @@
       });
     });
 
-    // ===========================================
-    // requestAnimationFrame 进度条更新逻辑
-    // ===========================================
+    // ====================================================================
+    // 新增：requestAnimationFrame 进度条更新逻辑
+    // ====================================================================
 
     /**
      * 启动 requestAnimationFrame 循环来平滑更新进度条和时间显示。
@@ -2451,9 +2456,9 @@
         animationFrameId = requestAnimationFrame(updateProgressBarFrame);
     }
 
-    // ===================================
-    // 系统时间显示逻辑
-    // ===================================
+    // ====================================================================
+    // 新增：系统时间显示逻辑
+    // ====================================================================
 
     /**
      * 更新系统时间显示。
@@ -2532,9 +2537,9 @@
         }
     }
 
-    // ===================================
+    // ====================================================================
     // UI/UX 交互功能
-    // ===================================
+    // ====================================================================
 
     /**
      * 显示视频内部控制条并重置自动隐藏计时器。
@@ -2594,47 +2599,18 @@
      */
     function handleFullscreenChange() {
         if (document.fullscreenElement) {
-            // 当前处于全屏模式，退出全屏
-            if (currentPlayingMethod === 'xgplayer' && xgPlayerInstance && xgPlayerInstance.fullscreen) {
-                xgPlayerInstance.fullscreen.exit();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
-            // 退出全屏时，如果是在移动设备上，解锁屏幕方向
-            if (isMobileDevice() && screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-                console.log('Screen orientation unlocked.');
-            }
+            videoContainerElement.classList.add('fullscreen-active');
+            showControls(); // 进入全屏时显示控制条并启动计时器
         } else {
-            // 不处于全屏模式，请求全屏
-            if (currentPlayingMethod === 'xgplayer' && xgPlayerInstance && xgPlayerInstance.fullscreen) {
-                xgPlayerInstance.fullscreen.request();
-            } else {
-                if (videoContainerElement.requestFullscreen) {
-                    videoContainerElement.requestFullscreen();
-                } else if (videoContainerElement.mozRequestFullScreen) {
-                    videoContainerElement.mozRequestFullScreen();
-                } else if (videoContainerElement.webkitRequestFullscreen) {
-                    videoContainerElement.webkitRequestFullscreen();
-                } else if (videoContainerElement.msRequestFullscreen) {
-                    videoContainerElement.msRequestFullscreen();
+            videoContainerElement.classList.remove('fullscreen-active');
+            // 退出全屏时，根据当前设备类型恢复控制条的显示逻辑
+            if (window.innerWidth > 768) { // 桌面端
+                resetHideTimer(); // 启动自动隐藏计时器
+            } else { // 移动端
+                // 如果控制条当前可见，也启动隐藏计时器
+                if (inVideoControls.classList.contains('controls-visible')) {
+                    resetHideTimer();
                 }
-            }
-            // 进入全屏时，如果是在移动设备上，尝试锁定屏幕方向为横屏
-            if (isMobileDevice() && screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').then(() => {
-                    console.log('Screen orientation locked to landscape.');
-                }).catch((err) => {
-                    console.warn('Failed to lock screen orientation:', err);
-                });
             }
         }
         applyVideoTransformations(); // 全屏/退出全屏后重新应用变换
@@ -2969,7 +2945,42 @@
       uploadArea.addEventListener(
         'drop',
         function handleDrop(e) {
-            handleFileSelection(e.dataTransfer.files);
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            const videoFiles = [];
+            const subtitleFiles = [];
+
+            if (files && files.length) {
+                Array.from(files).forEach(file => {
+                    const fileName = file.name.toLowerCase();
+                    if (fileName.endsWith('.srt') || fileName.endsWith('.vtt')) {
+                        subtitleFiles.push(file);
+                    } else if (file.type.startsWith('video/')) {
+                        videoFiles.push(file);
+                    } else {
+                        alert(`文件 "${file.name}" 类型不支持。请拖放视频或字幕文件 (.srt, .vtt)。`);
+                    }
+                });
+
+                if (videoFiles.length > 0) {
+                    playLocalVideo(videoFiles); // 批量播放视频文件
+                }
+
+                if (subtitleFiles.length > 0) {
+                    // 如果拖放了多个字幕文件，只处理第一个
+                    const file = subtitleFiles[0];
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        parseAndActivateSubtitle(event.target.result);
+                        currentSubtitleFileName = file.name;
+                        updateSubtitleSelectLabel(file.name);
+                    };
+                    reader.readAsText(file);
+                    if (subtitleFiles.length > 1) {
+                        console.warn('检测到多个字幕文件，只加载了第一个。');
+                    }
+                }
+            }
         },
         false
       );
@@ -3085,64 +3096,119 @@
         updateStatus('stopped', '播放已结束');
         // 检查循环模式
         if (currentLoopMode === 'single') {
-            activePlayer.currentTime = 0;
-            activePlayer.play();
-            updateStatus('playing', '单曲循环中...');
+            if (activePlayer) { // 确保播放器实例存在
+                activePlayer.currentTime = 0;
+                activePlayer.play();
+                updateStatus('playing', '单曲循环中...');
+            }
         } else if (currentLoopMode === 'list') {
             if (playbackHistory.length > 0) {
-                // 查找当前播放的视频在历史记录中的实际索引
-                // 有可能是因为随机播放，或者手动选择了历史记录外的一个链接而没有更新currentPlayingHistoryIndex
-                // 因此，需要根据 currentVideoUrl 重新确认索引
-                let currentIndexInHistory = -1;
-                if (currentVideoUrl && currentVideoUrl.startsWith('blob:')) {
-                    // 对于本地文件，需要通过 currentLocalFileName 来查找
-                    const currentItem = playbackHistory.find(item => item.type === 'local' && item.fileName === currentLocalFileName);
-                    if(currentItem) {
-                        currentIndexInHistory = playbackHistory.indexOf(currentItem);
+                let initialIndex = currentPlayingHistoryIndex; // 记录当前播放的索引
+                let playedNext = false;
+
+                // 从当前索引的下一个开始遍历，直到找到可播放项或遍历完一圈
+                for (let i = 0; i < playbackHistory.length; i++) {
+                    const nextIndex = (initialIndex + 1 + i) % playbackHistory.length;
+                    const nextItem = playbackHistory[nextIndex];
+
+                    if (!nextItem) {
+                        console.warn(`历史记录中索引 ${nextIndex} 的项不存在。`);
+                        continue;
                     }
-                } else if (currentVideoUrl) {
-                    // 对于远程文件
-                    const currentItem = playbackHistory.find(item => item.type === 'remote' && item.url === currentVideoUrl);
-                    if(currentItem) {
-                         currentIndexInHistory = playback = history.indexOf(currentItem);
+
+                    // 如果是本地文件且其文件对象已丢失，则跳过
+                    if (nextItem.type === 'local' && nextItem.fileObject === null) {
+                        console.warn(`列表循环中跳过本地文件 '${nextItem.fileName || nextItem.title}'，因为文件对象已丢失.`);
+                        continue;
                     }
+
+                    // 找到了可播放的下一项
+                    playFromHistory(nextIndex); // 使用 playFromHistory 来处理对应的视频播放
+                    updateStatus('playing', `列表循环中，播放下一项: ${nextItem.title}`);
+                    playedNext = true;
+                    break;
                 }
 
-                if (currentIndexInHistory !== -1) {
-                    currentPlayingHistoryIndex = (currentIndexInHistory + 1) % playbackHistory.length;
-                } else {
-                    currentPlayingHistoryIndex = 0; // Fallback: if not found, start from list beginning
+                if (!playedNext) {
+                    // 如果遍历完所有文件都找不到可播放的（例如，所有本地文件都丢失了）
+                    if (activePlayer) {
+                        activePlayer.currentTime = activePlayer.duration;
+                        activePlayer.pause();
+                    }
+                    updateStatus('stopped', '列表循环结束：所有文件均无法播放或已丢失。');
+                    currentPlayingHistoryIndex = -1; // 重置索引，因为循环停止
                 }
-
-                playFromHistory(currentPlayingHistoryIndex);
-                updateStatus('playing', `列表循环中，播放下一项: ${playbackHistory[currentPlayingHistoryIndex].title}`);
             } else {
-                activePlayer.currentTime = activePlayer.duration;
-                activePlayer.pause();
+                 if (activePlayer) {
+                    activePlayer.currentTime = activePlayer.duration;
+                    activePlayer.pause();
+                }
             }
+
         } else if (currentLoopMode === 'shuffle') {
             if (playbackHistory.length > 0) {
-                let nextIndex;
-                do {
-                    nextIndex = Math.floor(Math.random() * playbackHistory.length);
-                } while (playbackHistory.length > 1 && nextIndex === currentPlayingHistoryIndex);
+                let initialIndex = currentPlayingHistoryIndex;
+                let playedNext = false;
+                const maxAttempts = playbackHistory.length * 2; // 最多尝试两次遍历列表以找到可播放项
 
-                currentPlayingHistoryIndex = nextIndex;
-                playFromHistory(currentPlayingHistoryIndex);
-                updateStatus('playing', `随机播放中，播放: ${playbackHistory[currentPlayingHistoryIndex].title}`);
+                for (let i = 0; i < maxAttempts; i++) {
+                    let nextIndex;
+                    if (playbackHistory.length === 1) {
+                        nextIndex = 0; // 如果只有一项，强制播放这一项
+                    } else {
+                        do {
+                            nextIndex = Math.floor(Math.random() * playbackHistory.length);
+                        } while (playbackHistory.length > 1 && nextIndex === initialIndex); // 确保与当前项不同，除非只有一项
+                    }
+
+                    const nextItem = playbackHistory[nextIndex];
+
+                    if (!nextItem) {
+                        console.warn(`历史记录中随机索引 ${nextIndex} 的项不存在。`);
+                        continue;
+                    }
+
+                    // 如果是本地文件且文件对象已丢失，则跳过
+                    if (nextItem.type === 'local' && nextItem.fileObject === null) {
+                        console.warn(`随机播放中跳过本地文件 '${nextItem.fileName || nextItem.title}'，因为文件对象已丢失.`);
+                        if (playbackHistory.length === 1) { // 如果是唯一一项且丢失了，则无法播放
+                            break;
+                        }
+                        continue; // 跳过，重新生成随机索引
+                    }
+
+                    // 找到了可播放的下一项
+                    playFromHistory(nextIndex); // 使用 playFromHistory 来处理对应的视频播放
+                    updateStatus('playing', `随机播放中，播放: ${nextItem.title}`);
+                    playedNext = true;
+                    break;
+                }
+
+                if (!playedNext) {
+                    if (activePlayer) {
+                         activePlayer.currentTime = activePlayer.duration;
+                        activePlayer.pause();
+                    }
+                    updateStatus('stopped', '随机播放结束：所有文件均无法播放或已丢失。');
+                    currentPlayingHistoryIndex = -1; // 重置索引，因为循环停止
+                }
             } else {
-                activePlayer.currentTime = activePlayer.duration;
-                activePlayer.pause();
+                if (activePlayer) {
+                    activePlayer.currentTime = activePlayer.duration;
+                    activePlayer.pause();
+                }
             }
         } else {
             // Default behavior (no loop)
-            activePlayer.currentTime = activePlayer.duration;
-            activePlayer.pause(); // 立即暂停
-            activePlayer.currentTime = activePlayer.duration; // 精确设置到最后一帧
-            seekSlider.value = activePlayer.duration;
-            inVideoSeekSlider.value = activePlayer.duration;
-            currentTimeDisplay.textContent = formatTime(activePlayer.duration);
-            inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.duration);
+            if (activePlayer) {
+                activePlayer.currentTime = activePlayer.duration;
+                activePlayer.pause(); // 立即暂停
+                activePlayer.currentTime = activePlayer.duration; // 精确设置到最后一帧
+                seekSlider.value = activePlayer.duration;
+                inVideoSeekSlider.value = activePlayer.duration;
+                currentTimeDisplay.textContent = formatTime(activePlayer.duration);
+                inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.duration);
+            }
             playPauseIcon.className = 'fas fa-play';
             inVideoPlayPauseIcon.className = 'fas fa-play';
         }
@@ -3154,43 +3220,28 @@
         const error = err || (activePlayer && activePlayer.error); // For xgplayer, error object might be passed directly
         let errorMessage = '未知错误';
         if (error) {
-            // Check for specific error codes or details
-            if (typeof error === 'object' && 'code' in error) { // Native HTMLMediaElement error
-                switch (error.code) {
-                    case error.MEDIA_ERR_ABORTED:
-                        errorMessage = '用户终止了播放。';
-                        break;
-                    case error.MEDIA_ERR_NETWORK:
-                        errorMessage = '网络错误导致视频下载失败。';
-                        break;
-                    case error.MEDIA_ERR_DECODE:
-                        errorMessage = '视频解码错误。';
-                        break;
-                    case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                        errorMessage = '视频源格式不受支持或文件损坏。';
-                        break;
-                    default:
-                        errorMessage = `错误代码: ${error.code} - ${error.message || '未知错误'}`;
-                        break;
-                }
-            } else if (typeof error === 'object' && ('msg' in error || 'details' in error)) { // xgplayer/HLS.js error
-                errorMessage = `播放器错误: ${error.msg || error.details || '未知错误'}`;
-            } else if (typeof error === 'string') { // Fallback for simple string errors
-                errorMessage = error;
-            }
+          switch (error.code) {
+            case error.MEDIA_ERR_ABORTED:
+              errorMessage = '用户终止了播放。';
+              break;
+            case error.MEDIA_ERR_NETWORK:
+              errorMessage = '网络错误导致视频下载失败。';
+              break;
+            case error.MEDIA_ERR_DECODE:
+              errorMessage = '视频解码错误。';
+              break;
+            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+              errorMessage = '视频源格式不受支持或文件损坏。';
+              break;
+            default:
+              errorMessage = `错误代码: ${error.code} - ${error.message || error.msg || ''}`; // xgplayer might have 'msg'
+              break;
+          }
         }
         console.error('播放错误:', error);
         updateStatus('stopped', '播放错误: ' + errorMessage);
         playPauseIcon.className = 'fas fa-play';
         inVideoPlayPauseIcon.className = 'fas fa-play';
-        // When there is an error, revoke the current blob URL if it was a local file
-        if (currentVideoUrl && currentVideoUrl.startsWith('blob:')) {
-            URL.revokeObjectURL(currentVideoUrl);
-            currentBlobUrl = null;
-        }
-        currentVideoUrl = null; // Clear overall video URL
-        // Do NOT clear currentLocalFileObject or sessionLocalFiles here, only when a specific item is removed from history, or clearHistory is called.
-        // This ensures the local file remains in memory for "reload" or "play from history" within the current session.
         uploadPlaceholder.classList.remove('hidden');
         videoContainerElement.classList.remove('visible');
     }
@@ -3250,7 +3301,7 @@
         inVideoVolumePercentageDisplay.textContent = `${this.value}%`; // 同步视频内部音量百分比
 
         if (volume === 0) {
-          volumeIcon.className = 'fas fa-volume-mute'; // muted icon
+          volumeIcon.className = 'fas fa-volume-mute';
         } else if (volume < 0.5) {
           volumeIcon.className = 'fas fa-volume-down';
         } else {
@@ -3282,7 +3333,9 @@
                 inVideoVolumeIcon.className = 'fas fa-volume-off';
             } else if (volume < 0.5) {
                 inVideoVolumeIcon.className = 'fas fa-volume-down';
+                inVideoVolumeIcon.className = 'fas fa-volume-down';
             } else {
+                inVideoVolumeIcon.className = 'fas fa-volume-up';
                 inVideoVolumeIcon.className = 'fas fa-volume-up';
             }
             updateMuteButtonIcon(); // 确保静音按钮图标也同步
@@ -3461,206 +3514,125 @@
      * 重新加载视频。
      */
     function reloadVideo() {
-        const inputUrlText = document.getElementById('videoURL').value.trim();
-
-        if (inputUrlText.startsWith('本地文件:')) {
-            // 从 URL 输入框解析文件名，然后从 sessionLocalFiles 获取 File 对象
-            const fileName = inputUrlText.substring('本地文件: '.length);
-            const fileObject = sessionLocalFiles.get(fileName);
-            if (fileObject) { // 使用存储的 File 对象进行重新加载
-                playLocalVideoActual(fileObject);
+        // 如果当前有正在播放的视频且在历史记录中
+        if (activePlayer && currentPlayingHistoryIndex !== -1 && playbackHistory[currentPlayingHistoryIndex]) {
+            const item = playbackHistory[currentPlayingHistoryIndex];
+            if (item.type === 'local') {
+                if (item.fileObject) {
+                    playFromHistory(currentPlayingHistoryIndex); // 文件对象还在，直接重新播放
+                    return;
+                } else {
+                    alert('本地视频文件已丢失，请重新选择或上传。');
+                    document.getElementById('videoURL').value = ''; // 清空URL输入框
+                    stopPlaybackInternal(false);
+                    return;
+                }
+            } else { // 如果是远程视频
+                play(item.url); // 重新播放远程视频，play() 函数会处理历史记录
                 return;
             }
-            alert('本地视频文件已丢失，请重新选择或上传。');
-             // 清空 URL 输入框并停止播放器，清除状态（防止显示“正在播放”却无画面）
-            document.getElementById('videoURL').value = '';
-            stopPlaybackInternal(false);
-        } else if (currentVideoUrl) { // 使用 currentVideoUrl 重新播放网络视频
-            play(currentVideoUrl);
+        }
+
+        // 如果没有正在播放的视频或者历史记录不可用，尝试从URL输入框加载
+        const inputUrl = document.getElementById('videoURL').value.trim();
+        if (inputUrl) {
+            play(inputUrl);
         } else {
-            alert('没有正在播放的视频，请先加载一个视频。');
+            alert('没有视频可重新加载。请输入视频URL或点击“上传本地视频”按钮。');
         }
     }
 
     /**
-     * Handles selection of both video and subtitle files, including multiple.
-     * @param {FileList} files - The FileList object from the file input or drag-drop.
+     * 播放本地视频。
+     * @param {File | FileList | Array<File>} fileOrFiles - 单个 File 对象、FileList 或 File 对象数组
      */
-    function handleFileSelection(files) {
-        if (!files || files.length === 0) {
-            updateStatus('stopped', '未选择任何文件。');
+    function playLocalVideo(fileOrFiles) {
+        let filesArray = [];
+        if (fileOrFiles instanceof File) {
+            filesArray.push(fileOrFiles);
+        } else if (fileOrFiles instanceof FileList || Array.isArray(fileOrFiles)) {
+            filesArray = Array.from(fileOrFiles);
+        } else {
+            console.error("playLocalVideo 接收到无效输入:", fileOrFiles);
             return;
         }
 
-        // --- Clear existing subtitle/session data for NEW FILE SELECTION ---
-        // This is important as a new file selection implies restarting from a clean slate for subtitles.
-        currentSubtitleTracks = []; // Clear old subtitles list
-        currentSubtitleFileName = null; // Clear old subtitle filename
-        subtitleDisplay.textContent = '';
-        subtitleDisplay.style.display = 'none';
-        updateSubtitleSelectLabel(null); // Reset subtitle select to '无字幕'
-        updateToggleSubtitleButtonIcon(); // Reset subtitle toggle button icon
+        if (filesArray.length === 0) {
+            updateStatus('stopped', '未选择文件');
+            return;
+        }
 
-        // When selecting new files, old local file references in session need to be cleared
-        // This ensures old blob URLs for previously loaded local files (if not playing them) are revoked.
-        // Also ensure currently playing blob URL is revoked.
-        stopPlaybackInternal(true); // Stop current playback and ensure its blob URL is revoked if any. Keep placeholder hidden.
+        let firstItemToPlay = null;
+        let localFilesFound = 0;
 
-        let videosToProcess = []; // Store video File objects to be processed
-        let firstVideoFound = null; // To track the first video to be played immediately
-        let subtitleFileToProcess = null;
+        filesArray.forEach(file => {
+            const extension = file.name.split('.').pop().toLowerCase();
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const fileName = file.name.toLowerCase();
-
-            if (file.type.startsWith('video/')) {
-                videosToProcess.push(file); // Collect all video files
-                if (!firstVideoFound) {
-                    firstVideoFound = file; // Remember the first video to play it
-                }
-                // Add this File object to the sessionLocalFiles map for current session playback and future history lookup
-                sessionLocalFiles.set(file.name, file);
-                // Add to history. addToHistory now stores fileName, not blob URL.
-                addToHistory(file); // Pass the File object to addToHistory
-            } else if (fileName.endsWith('.srt') || fileName.endsWith('.vtt')) {
-                // If multiple subtitle files, only process the first one found in the batch
-                if (!subtitleFileToProcess) {
-                    subtitleFileToProcess = file;
-                }
-            } else {
-                console.warn(`Skipping unsupported file type: ${file.name}`);
+            if (!supportedFormats.includes(extension)) {
+                console.warn(`不支持的视频格式文件已跳过: .${extension} (文件: ${file.name})`);
+                return; // 跳过不支持的文件
             }
-        }
 
-        // Process subtitle file (if found)
-        if (subtitleFileToProcess) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                parseAndActivateSubtitle(e.target.result);
-                currentSubtitleFileName = subtitleFileToProcess.name;
-                updateSubtitleSelectLabel(subtitleFileToProcess.name);
-                updateStatus('stopped', `字幕文件 ${subtitleFileToProcess.name} 已加载。`);
+            localFilesFound++;
+            // 为每个本地文件创建一个临时的 Blob URL
+            const fileURL = URL.createObjectURL(file);
+            const historyItem = {
+                // `title` 初始化为默认，如果用户有自定义，后续 `addToHistory` 会保留
+                title: `本地文件: ${file.name}`,
+                url: fileURL, // Blob URL
+                fileName: file.name,
+                type: 'local',
+                fileObject: file, // 存储 File 对象，但它不会在 localStorage 中持久化
+                timestamp: new Date().toISOString(),
             };
-            reader.readAsText(subtitleFileToProcess);
-        }
 
-        // Play the first video from the selected batch
-        if (firstVideoFound) {
-            document.getElementById('videoURL').value = `本地文件: ${firstVideoFound.name}`;
-            playLocalVideoActual(firstVideoFound); // Play the first detected video file
-        } else if (!subtitleFileToProcess) {
-            // No videos and no subtitles found in the selection
-            updateStatus('stopped', '未选择任何支持的视频或字幕文件。');
-            uploadPlaceholder.classList.remove('hidden');
-            videoContainerElement.classList.remove('visible');
-        } else {
-             // Only subtitle loaded, no video. Keep placeholder visible for video selection.
-             uploadPlaceholder.classList.remove('hidden');
-             videoContainerElement.classList.remove('visible');
-             // Clear the videoURL input if only subtitle was selected (and no video was previously there)
-             document.getElementById('videoURL').value = '';
-        }
-    }
+            // 添加到历史记录 (addToHistory 会处理是新增还是更新现有)
+            addToHistory(historyItem);
 
-
-    /**
-     * Plays a local video from a File object.
-     * This is the internal function that takes the actual File object.
-     * @param {File} fileObject - The File object to play.
-     */
-    function playLocalVideoActual(fileObject) {
-        if (!fileObject) {
-            updateStatus('stopped', '本地视频文件对象无效。');
-            return;
-        }
-
-        const extension = fileObject.name.split('.').pop().toLowerCase();
-        if (!supportedFormats.includes(extension)) {
-            alert(`不支持的视频格式: .${extension}\n请尝试其他视频文件，或确保文件未损坏。`);
-            updateStatus('stopped', `不支持的格式: .${extension}`);
-            return;
-        }
-
-        // Revoke any previous blob URL before creating a new one
-        if (currentBlobUrl && currentBlobUrl.startsWith('blob:')) {
-            URL.revokeObjectURL(currentBlobUrl);
-            console.log('Revoked old blob URL:', currentBlobUrl);
-            currentBlobUrl = null;
-        }
-
-        // Stop and clean any existing player instances, but keep placeholder hidden
-        // (stopPlaybackInternal(true) is already called by handleFileSelection before this,
-        // but explicit revoke here ensures isolated blob url management)
-        stopPlaybackInternal(true); // This will also revoke `currentBlobUrl` if it's still set from previous `play` call
-
-        // Set playing method to native
-        currentPlayingMethod = 'native';
-        nativeVideoPlayer.style.display = 'block';
-        xgplayerContainerElement.style.display = 'none';
-        activePlayer = nativeVideoPlayer;
-
-        currentLocalFileName = fileObject.name;
-
-        // Ensure sessionLocalFiles has the current file object mapped to its name
-        sessionLocalFiles.set(fileObject.name, fileObject);
-
-        const fileURL = URL.createObjectURL(fileObject);
-        currentBlobUrl = fileURL; // Store the newly created blob URL
-        currentVideoUrl = fileURL; // Update currentVideoUrl with the new blob URL
-        nativeVideoPlayer.src = fileURL;
-        nativeVideoPlayer.currentTime = 0.01;
-
-        // Apply saved playback rate
-        const savedPlaybackRate = localStorage.getItem('playbackRate');
-        if (savedPlaybackRate) {
-            activePlayer.playbackRate = parseFloat(savedPlaybackRate);
-        } else {
-            activePlayer.playbackRate = 1.0;
-        }
-        // Update speed button UI
-        document.querySelectorAll('#speedBtnGroup .btn').forEach(btn => btn.classList.remove('active-speed-btn'));
-        const activeSpeedBtn = document.querySelector(`#speedBtnGroup .btn[data-speed="${activePlayer.playbackRate}"]`);
-        if (activeSpeedBtn) {
-            activeSpeedBtn.classList.add('active-speed-btn');
-        }
-
-        applyVideoTransformations();
-        applyVideoFilters();
-
-        nativeVideoPlayer.play().catch((e) => {
-            console.error('本地视频播放错误:', e);
-            updateStatus('stopped', '播放错误: ' + e.message);
-            // If playing fails, show upload placeholder and hide video container
-            uploadPlaceholder.classList.remove('hidden');
-            videoContainerElement.classList.remove('visible');
+            // 标记要首先播放的视频
+            if (!firstItemToPlay) {
+                firstItemToPlay = historyItem;
+            }
         });
 
-        uploadPlaceholder.classList.add('hidden'); // Hide placeholder if playing succeeds
-        videoContainerElement.classList.add('visible');
-        updateStatus('playing', `正在播放: ${fileObject.name}`);
+        if (firstItemToPlay) {
+            // 在更新后的 history 列表中找到第一个要播放的视频的索引
+            currentPlayingHistoryIndex = playbackHistory.findIndex(item => item.url === firstItemToPlay.url);
+            if (currentPlayingHistoryIndex === -1) {
+                // 如果找不到，这可能是个错误情况，暂时默认到第一个
+                currentPlayingHistoryIndex = 0;
+            }
 
-        // Set currentPlayingHistoryIndex for local files when they are active
-        const historyItemIndex = playbackHistory.findIndex(item => item.type === 'local' && item.fileName === fileObject.name);
-        if (historyItemIndex !== -1) {
-            currentPlayingHistoryIndex = historyItemIndex;
-        } else {
-            // This scenario implies a file was played directly without being in history yet, or history was cleared.
-            // Re-add to history if not present to ensure loop modes work.
-            addToHistory(fileObject);
-            // After addToHistory, currentPlayingHistoryIndex should be 0 because it puts new items at the front.
-            currentPlayingHistoryIndex = 0;
-            renderHistory(); // Re-render history list if a new item was added
+            // 设置 URL 输入框显示
+            document.getElementById('videoURL').value = firstItemToPlay.title;
+
+            // 调用核心播放函数
+            playCore(firstItemToPlay.url, firstItemToPlay.fileObject, true, firstItemToPlay.fileName);
+
+            updateStatus('playing', `正在播放: ${firstItemToPlay.fileName}`);
+
+            // 如果上传了多个有效文件，默认将循环模式设置为列表循环
+            if (localFilesFound > 1 && currentLoopMode === 'none') {
+                setLoopMode('list'); // 自动激活列表循环模式
+                updateLoopModeButtons();
+            }
+        } else if (filesArray.length > 0) { // 有文件但是没有有效的视频文件
+            updateStatus('stopped', '未选择有效的本地视频文件。');
+            uploadPlaceholder.classList.remove('hidden');
+            videoContainerElement.classList.remove('visible');
         }
     }
 
 
     /**
-     * 自动检测并播放视频。
-     * @param {string} url - 视频地址
+     * 播放视频的通用核心函数 (内部调用)。
+     * @param {string} url - 视频地址 (可以是网络URL或Blob URL)
+     * @param {File} [fileObject=null] - 如果是本地文件，提供对应的 File 对象
+     * @param {boolean} [isLocalPlayback=false] - 是否为本地文件播放
+     * @param {string} [fileName=null] - 如果是本地文件，提供文件名
      */
-    function play(url) {
-      stopPlaybackInternal(true); // 停止之前的播放并清理
+    function playCore(url, fileObject = null, isLocalPlayback = false, fileName = null) {
+      stopPlaybackInternal(true); // 停止之前的播放并清理旧的 Blob URL
 
       currentVideoUrl = url;
 
@@ -3742,20 +3714,13 @@
                       subtitleDisplay.style.display = 'none';
                   }
               });
-              xgPlayerInstance.on('loadedmetadata', () => { // Changed from 'loadeddata' to 'loadedmetadata' for xgplayer consistency
-                  // Set max value for seek slider only if duration is available and valid
-                  const duration = activePlayer.duration;
-                  if (typeof duration === 'number' && isFinite(duration) && duration > 0) {
-                      seekSlider.max = duration;
-                      inVideoSeekSlider.max = duration;
-                      durationDisplay.textContent = formatTime(duration);
-                      inVideoDurationDisplay.textContent = formatTime(duration);
-                  } else { // For live streams, duration might be Infinity, set max to 0
-                      seekSlider.max = 0;
-                      inVideoSeekSlider.max = 0;
-                      durationDisplay.textContent = '直播';
-                      inVideoDurationDisplay.textContent = '直播';
-                  }
+              xgPlayerInstance.on('loadeddata', () => {
+                  // 设置进度条最大值和总时长显示
+                  seekSlider.max = activePlayer.duration;
+                  inVideoSeekSlider.max = activePlayer.duration;
+                  durationDisplay.textContent = formatTime(activePlayer.duration);
+                  inVideoDurationDisplay.textContent = formatTime(activePlayer.duration);
+                  // 初始显示当前时间
                   currentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
                   inVideoCurrentTimeDisplay.textContent = formatTime(activePlayer.currentTime);
               });
@@ -3795,11 +3760,8 @@
               }
 
               // 应用画面变换和滤镜到 xgplayer 内部的 video 元素
-              if (xgPlayerInstance && xgPlayerInstance.video) { // Ensure video element is available
-                applyVideoTransformations();
-                applyVideoFilters();
-              }
-
+              applyVideoTransformations();
+              applyVideoFilters();
 
               xgPlayerInstance.play().catch(e => {
                   console.warn("XGPlayer 自动播放被阻止或播放失败:", e);
@@ -3812,21 +3774,44 @@
               console.error('XGPlayer 初始化失败，尝试原生播放:', e);
               // 如果 xgplayer 失败，则回退到原生播放
               // 注意：原生播放器对 MKV 的支持可能有限
-              playWithNativePlayer(url, isM3U8);
+              playWithNativePlayer(url, isM3U8, fileObject);
           }
       } else {
           // 对于 HLS、MP4、WebM 等，使用原生播放器
-          playWithNativePlayer(url, isM3U8);
+          playWithNativePlayer(url, isM3U8, fileObject);
       }
-
-      // Add to history AFTER player initialization, as part of the "play" flow
-      // This is for remote URLs only. Local files are added in handleFileSelection.
-      // Call addToHistory with the URL itself
-      addToHistory(url);
     }
 
+    /**
+     * 播放在线视频的外部接口。
+     * @param {string} url - 视频地址
+     */
+    function play(url) {
+        // 创建临时的历史记录项（或用于查找现有项）
+        const tempHistoryItem = {
+            title: url, // `title` 初始化为默认，如果用户有自定义，后续 `addToHistory` 会保留
+            url: url,
+            fileName: null,
+            type: 'remote',
+            timestamp: new Date().toISOString(),
+        };
+        // 添加到历史记录。此函数会处理是新增（unshift到顶部）还是更新现有（位置不变） [3][1]
+        addToHistory(tempHistoryItem);
+
+        // 找到该视频在更新后的历史记录数组中的实际索引
+        currentPlayingHistoryIndex = playbackHistory.findIndex(item => item.type === 'remote' && item.url === url);
+        // 如果是新项，它会在索引 0。如果是现有项，它将保留其原始索引。
+
+        // 设置URL输入框
+        document.getElementById('videoURL').value = url;
+
+        // 调用核心播放函数
+        playCore(url, null, false, null); // 远程 URL 不需要 fileObject 和 fileName
+    }
+
+
     // 辅助函数，用于处理原生/HLS 播放逻辑
-    function playWithNativePlayer(url, isM3U8) {
+    function playWithNativePlayer(url, isM3U8, fileObject = null) {
         currentPlayingMethod = 'native'; // 默认为原生
         nativeVideoPlayer.style.display = 'block'; // 显示原生 video
         xgplayerContainerElement.style.display = 'none'; // 隐藏 xgplayer 容器
@@ -3930,7 +3915,11 @@
             }
         } else {
             // 对于其他格式，尝试原生播放
-            nativeVideoPlayer.src = url;
+            if (fileObject) { // 如果是本地文件且提供了 File 对象
+                nativeVideoPlayer.src = URL.createObjectURL(fileObject);
+            } else { // 否则使用提供的 URL
+                nativeVideoPlayer.src = url;
+            }
             nativeVideoPlayer.currentTime = 0.01;
             nativeVideoPlayer.play().catch((e) => {
                 console.error('原生播放错误:', e);
@@ -3997,46 +3986,44 @@
             });
         }
 
-        // Apply saved playback rate
+        // 应用保存的播放速度
         const savedPlaybackRate = localStorage.getItem('playbackRate');
         if (savedPlaybackRate) {
             activePlayer.playbackRate = parseFloat(savedPlaybackRate);
         } else {
             activePlayer.playbackRate = 1.0;
         }
-        // Update speed button UI
+        // 更新速度按钮 UI
         document.querySelectorAll('#speedBtnGroup .btn').forEach(btn => btn.classList.remove('active-speed-btn'));
         const activeSpeedBtn = document.querySelector(`#speedBtnGroup .btn[data-speed="${activePlayer.playbackRate}"]`);
         if (activeSpeedBtn) {
             activeSpeedBtn.classList.add('active-speed-btn');
         }
 
-        // Apply video transformations and filters to native player
+        // 应用画面变换和滤镜到原生播放器
         applyVideoTransformations();
         applyVideoFilters();
     }
 
     /**
      * 停止播放内部实现。
-     * @param {boolean} keepPlaceholderHidden - 是否保持占位符隐藏 (用于在切换视频源时不闪烁)。
+     * @param {boolean} keepPlaceholderHidden - 是否保持占位符隐藏。
      */
     function stopPlaybackInternal(keepPlaceholderHidden = false) {
       stopProgressBarUpdate(); // 停止 requestAnimationFrame 循环
 
-      // 撤销当前可能存在的 blob URL，防止内存泄漏
-      if (currentBlobUrl && currentBlobUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(currentBlobUrl);
-          console.log('Revoked old blob URL:', currentBlobUrl);
-          currentBlobUrl = null;
-      }
-
       // 停止当前活跃的播放器
       if (activePlayer) {
           activePlayer.pause();
-          // 如果是原生HTML video元素，清空src并加载
-          if (activePlayer === nativeVideoPlayer) {
+          // 如果当前播放的视频源是 Blob URL，则释放它以避免内存泄漏
+          if (activePlayer.src && activePlayer.src.startsWith('blob:')) {
+              URL.revokeObjectURL(activePlayer.src);
+              console.log('Blob URL revoked:', activePlayer.src); // 调试信息
+          }
+          // 如果不是 xgplayer，则清空原生 video 的 src
+          if (currentPlayingMethod !== 'xgplayer') {
               activePlayer.removeAttribute('src');
-              activePlayer.load();
+              activePlayer.load(); // 触发 load 以清除视频状态
           }
       }
 
@@ -4059,26 +4046,19 @@
       durationDisplay.textContent = '00:00';
       inVideoDurationDisplay.textContent = '00:00';
 
-      currentVideoUrl = null; // 清空当前播放的URL
-      currentPlayingHistoryIndex = -1;
-      currentLocalFileName = null; // 清空当前本地文件名称跟踪
-      removeSubtitle(); // 每次停止播放都清除字幕
+      currentVideoUrl = null;
+      // 注意：这里不重置 currentPlayingHistoryIndex，因为它表示的是当前播放的项在历史记录中的位置。
+      // 只有当明确停止播放器且不再预期任何自动播放时才应重置它。
+      // 在循环结束后或用户主动停止时才重置。
 
-      // 仅当需要完全重置播放器状态时才清空 sessionLocalFiles
-      if (!keepPlaceholderHidden) {
-          // No need to explicitly revoke blob URLs here based on sessionLocalFiles,
-          // as playLocalVideoActual already revokes the *previous* blob URL when a new one is created.
-          // By clearing the map, we signal that these file objects are no longer remembered or accessible
-          // for future playback from history in this session.
-          sessionLocalFiles.clear(); // 清空所有本地文件引用
-          document.getElementById('videoURL').value = ''; // Clear URL input field
-      }
+      removeSubtitle();
 
       updateStatus('stopped', '播放器已停止');
 
       if (!keepPlaceholderHidden) {
         uploadPlaceholder.classList.remove('hidden');
         videoContainerElement.classList.remove('visible');
+        document.getElementById('videoURL').value = '';
       }
 
       // 确保两个播放器容器都隐藏
@@ -4099,6 +4079,7 @@
      * 停止播放 (外部接口)。
      */
     function stopPlayback() {
+      currentPlayingHistoryIndex = -1; // 用户主动停止时重置索引
       stopPlaybackInternal(false);
     }
 
@@ -4252,8 +4233,8 @@
       subtitleDisplay.style.display = 'block';
       subtitleDisplay.textContent = '';
       if (activePlayer) {
-        // When there are subtitles, ensure updateProgressBarFrame calls updateSubtitleDisplay
-        // Or call it once here to ensure immediate display
+        // 当有字幕时，确保 updateProgressBarFrame 会调用 updateSubtitleDisplay
+        // 或者直接在这里调用一次，确保立即显示
         updateSubtitleDisplay(activePlayer.currentTime);
       }
       applySubtitleSettings();
@@ -4290,6 +4271,7 @@
 
       subtitleActive = !subtitleActive;
 
+      // 如果字幕被激活，尝试立即更新其内容
       if (subtitleActive) {
         if (activePlayer) {
             updateSubtitleDisplay(activePlayer.currentTime);
@@ -4309,11 +4291,12 @@
       if (toggleBtn) {
         const toggleIcon = toggleBtn.querySelector('i');
         if (toggleIcon) {
-          if (subtitleActive) {
-            toggleIcon.className = 'fas fa-eye';
-          } else {
-            toggleIcon.className = 'fas fa-eye-slash';
-          }
+            // 只有当有实际字幕数据时才显示“切换”图标，否则显示“隐藏”
+            if (currentSubtitleTracks.length > 0 && subtitleActive) {
+                toggleIcon.className = 'fas fa-eye';
+            } else {
+                toggleIcon.className = 'fas fa-eye-slash';
+            }
         }
       }
     }
@@ -4357,98 +4340,64 @@
       }
 
       try {
-        new URL(url);
-        return false;
+        new URL(url); // 尝试解析为 URL
+        return false; // 如果能解析但无后缀，通常不是视频
       } catch (e) {
-        return false;
+        return false; // 无法解析则肯定不是有效 URL
       }
     }
 
     /**
-     * 添加或更新播放历史记录项。
-     * 如果 `source` 是文件对象，则为本地文件。
-     * 如果 `source` 是字符串，则为URL。
-     * 会保留自定义的标题。
-     * @param {File | string} source - File 对象（本地文件）或 URL 字符串（远程视频）。
+     * 将新的历史记录项添加到历史记录列表。
+     * 如果已存在相同的项（URL相同或本地文件名相同），则更新其时间戳但不改变其在列表中的位置。
+     * 如果是新项，则添加到列表顶部。
+     * @param {object} newItem - 包含 title, url, fileName, type, timestamp, fileObject 的对象。
      */
-    function addToHistory(source) {
-        let type;
-        let identifier; // 用于查找的唯一标识符
-        let defaultGeneratedTitle;
-        let urlForHistory = null; // 历史记录中不再存储 blob URL，只存储实际 URL 或 null for local
-
-        if (source instanceof File) {
-            type = 'local';
-            identifier = source.name; // Use file name as identifier for local files
-            defaultGeneratedTitle = `本地文件: ${identifier}`;
-            // The actual File object is stored in sessionLocalFiles elsewhere
-        } else if (typeof source === 'string') {
-            type = 'remote';
-            identifier = source; // Use URL as identifier for remote files
-            urlForHistory = source;
-            defaultGeneratedTitle = source;
-        } else {
-            console.error("addToHistory 的无效源:", source);
-            return;
-        }
-
-        const newTimestamp = new Date().toISOString();
+    function addToHistory(newItem) {
         let existingIndex = -1;
 
-        // 查找是否存在该项目（基于其类型和标识符）
-        if (type === 'local') {
-            existingIndex = playbackHistory.findIndex(item => item.type === 'local' && item.fileName === identifier);
-        } else if (type === 'remote') {
-            existingIndex = playbackHistory.findIndex(item => item.type === 'remote' && item.url === identifier);
+        if (newItem.type === 'local') {
+            existingIndex = playbackHistory.findIndex(item => item.type === 'local' && item.fileName === newItem.fileName);
+        } else { // Remote URL
+            existingIndex = playbackHistory.findIndex(item => item.type === 'remote' && item.url === newItem.url);
         }
 
         if (existingIndex !== -1) {
-            // 项目已存在
             const existingItem = playbackHistory[existingIndex];
+            // 计算现有条目的默认标题形式
+            const defaultTitleForExistingItem = existingItem.type === 'local' ? `本地文件: ${existingItem.fileName}` : existingItem.url;
 
-            if (type === 'local') {
-                // 对于本地文件：移除旧项（如果有），更新信息，移到顶部。
-                // 解释：用户重新选择本地文件，通常意味着希望它成为当前焦点，并位于列表顶部。
-                playbackHistory.splice(existingIndex, 1); // 从旧位置移除
-                // 更新属性
-                existingItem.timestamp = newTimestamp; // 更新时间戳
-                // 保留自定义标题，如果原来是默认标题，则更新为新的默认标题
-                const oldDefaultTitleForLocal = `本地文件: ${identifier}`;
-                if (existingItem.title === oldDefaultTitleForLocal) {
-                    existingItem.title = defaultGeneratedTitle;
-                }
-                playbackHistory.unshift(existingItem); // 移到顶部
-                currentPlayingHistoryIndex = 0; // 刚刚播放的本地文件现在就在顶部，索引为0。
-            } else { // type === 'remote'
-                // 对于远程视频：不移动位置到顶部，只更新时间戳。
-                // 解释：根据用户需求，在线视频再次播放时，不更新其在历史记录中的位置，只更新时间戳。
-                existingItem.timestamp = newTimestamp; // 只更新时间戳
-                // existingItem.title 保持不变，以保留用户自定义备注
-                // 位置在列表中也保持不变，不进行 splice/unshift
-                currentPlayingHistoryIndex = existingIndex; // 设置当前播放的是此索引的项
+            // 只有当现有条目的标题是默认标题时，才用新条目的标题（也是默认标题）覆盖它。
+            // 这样可以保留用户自定义的标题。
+            if (existingItem.title === defaultTitleForExistingItem) {
+                existingItem.title = newItem.title; // 使用 newItem 的默认标题更新
             }
+            // else: existingItem.title 是自定义标题，保持不变。
+
+            existingItem.timestamp = newItem.timestamp; // 总是更新时间戳
+            if (newItem.type === 'local' && newItem.fileObject) {
+                existingItem.fileObject = newItem.fileObject; // 如果是本地文件，总是更新文件对象引用
+            }
+            // 不改变其在数组中的位置 [1] [2]
         } else {
-            // 新项目：添加到列表顶部 (无论是本地还是远程，新项都应在顶部)
-            const newItem = {
-                title: defaultGeneratedTitle,
-                url: urlForHistory, // Null for local files, actual URL for remote
-                fileName: type === 'local' ? identifier : null,
-                type: type,
-                timestamp: newTimestamp,
-            };
+            // 如果是新项，添加到数组顶部 [3]
             playbackHistory.unshift(newItem);
-            currentPlayingHistoryIndex = 0; // 新增项总是在索引0
         }
 
-        // 限制历史记录大小（最多20项）
-        while (playbackHistory.length > 20) {
-            playbackHistory.pop(); // 移除最旧的项
+        // 限制历史记录条目数量
+        if (playbackHistory.length > 20) {
+            playbackHistory.pop();
         }
 
-        localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory));
-        renderHistory(); // 重新渲染历史记录以反映任何变化
+        localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory, (key, value) => {
+            // 在保存到 localStorage 时，移除 File 对象，因为它不可序列化
+            if (key === 'fileObject') {
+                return undefined;
+            }
+            return value;
+        }));
+        renderHistory(); // 重新渲染历史记录列表
     }
-
 
     /**
      * Helper function to create event handlers for input.
@@ -4459,6 +4408,7 @@
 
       const blurHandler = (event) => {
         if (currentlyEditingIndex === index) {
+            // 确保失去焦点不是由于点击保存按钮
             if (!event.relatedTarget || !event.relatedTarget.closest('.edit-save-btn')) {
                 saveEditMode(currentlyEditingIndex); // 确保传递正确的索引
             }
@@ -4529,14 +4479,14 @@
 
       const newTitle = editInput.value.trim();
 
-      // Ensure that if newTitle is empty, it reverts to the original (or current default) title
-      // It's safer to just prevent empty titles and keep the previous one
       if (newTitle === '') {
-        alert('标题不能为空，已保留原标题。');
-        editInput.value = playbackHistory[index].title; // Revert input field
+        editInput.value = playbackHistory[index].title;
       } else {
         playbackHistory[index].title = newTitle;
-        localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory));
+        localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory, (key, value) => {
+            if (key === 'fileObject') { return undefined; } // 确保 File 对象不被序列化
+            return value;
+        }));
       }
       displaySpan.textContent = playbackHistory[index].title;
 
@@ -4553,7 +4503,8 @@
         editInput.removeEventListener('keypress', handlers.keypressHandler);
         window._inputEventListenersMap.delete(index);
       }
-      currentlyEditingIndex = -1; // Reset editing state after save
+
+      currentlyEditingIndex = -1;
     }
 
     /**
@@ -4566,11 +4517,10 @@
         saveEditMode(currentlyEditingIndex);
       }
 
-      // 清除旧的事件监听器映射，因为 DOM 元素会被重新创建
       if (window._inputEventListenersMap) {
         window._inputEventListenersMap.clear();
       }
-      currentlyEditingIndex = -1; // 确保在重新渲染前重置编辑状态
+      currentlyEditingIndex = -1;
 
       if (playbackHistory.length === 0) {
         historyList.innerHTML = '<div class="empty-history">暂无播放历史</div>';
@@ -4579,41 +4529,27 @@
 
       historyList.innerHTML = '';
 
-      // 对历史记录进行排序：先按类型 ('local' 优先), 再按时间戳降序
-      // 这样的排序逻辑只有在 renderHistory 被调用时才会应用。
-      // 因为用户要求"在线视频不再移到顶部"，所以 addToHistory 不会改变其位置。
-      // 因此，为了展示的统一性，这里仍然可以按照某种逻辑进行全局渲染排序。
-      // 如果 playbackHistory 本身需要严格按照播放时间重新排序（无论是 local 还是 remote），
-      // 那么 addToHistory 无论如何都需要执行 splice 和 unshift。
-      // 但由于明确要求"不再移动顶部"针对远程视频，我们尊重这一点，保持其现有排序。
-      // 而本地文件每次选择或再次播放时，addToHistory 仍然将其移到最前面。
-      // 所以，这里的 `forEach` 循环将按照 `playbackHistory` 数组的当前顺序进行渲染。
-      // 如果需要更复杂的排序（如本地文件始终在最前面，然后是按时间戳降序的远程文件），
-      // 则需要在此处对 `playbackHistory` 进行一次内部排序拷贝再渲染。
-      // 但为了满足“在线视频不更新到最顶层”的核心要求，我们假定用户希望它们保持它们在列表中的原始位置，
-      // 并且本地文件的"移动到顶部"是可接受的。
-
       playbackHistory.forEach((item, index) => {
         const historyItem = document.createElement('div');
         historyItem.className = 'history-item';
         historyItem.id = `historyItem_${index}`;
 
         let formatTagHtml = '';
-        if (item.type === 'local' || (typeof item.url === 'string' && isValidVideoUrl(item.url))) { // 判断视频类型以显示标签
-            let format = '未知';
-            if (item.type === 'local') {
-                format = '本地';
-            } else {
-                const ext = getFileExtension(item.url);
-                if (ext) {
-                    format = ext.toUpperCase();
-                } else if (item.url.includes('.m3u8')) {
-                    format = 'M3U8';
-                } else if (item.url.includes('.flv')) {
-                    format = 'FLV';
-                }
+        if (isValidVideoUrl(item.url) || item.type === 'local') { // 本地文件也应显示格式标签
+          let format = '未知';
+          if (item.type === 'local') {
+            format = '本地';
+          } else {
+            const ext = getFileExtension(item.url);
+            if (ext) {
+              format = ext.toUpperCase();
+            } else if (item.url.includes('.m3u8')) {
+              format = 'M3U8';
+            } else if (item.url.includes('.flv')) {
+              format = 'FLV';
             }
-            formatTagHtml = `<div class="format-tag">${format}</div>`;
+          }
+          formatTagHtml = `<div class="format-tag">${format}</div>`;
         }
 
         historyItem.innerHTML = `
@@ -4643,61 +4579,48 @@
 
     /**
      * 从历史记录播放。
-     * @param {number} index - 历史记录中的索引。
      */
     function playFromHistory(index) {
-        const item = playbackHistory[index];
-        if (!item) {
-            console.error("历史记录项不存在:", index);
-            updateStatus('stopped', '历史记录项不存在。');
-            currentPlayingHistoryIndex = -1;
-            return;
-        }
+      const item = playbackHistory[index];
+      if (!item) return;
 
-        currentPlayingHistoryIndex = index; // 设置当前播放的历史记录索引
+      currentPlayingHistoryIndex = index; // 设置当前播放的历史记录索引
 
-        if (item.type === 'local') {
-            const fileObject = sessionLocalFiles.get(item.fileName); // 尝试从会话映射中获取 File 对象
-            if (fileObject) {
-                document.getElementById('videoURL').value = item.title; // 更新 URL 输入框显示
-                playLocalVideoActual(fileObject); // 播放实际的 File 对象
-            } else {
-                alert(`该文件已丢失或当前浏览器会话已清除，无法从历史记录中播放。\n请重新选择此文件 (${item.fileName}) 或点击“上传本地视频”重新上传。`);
-                // 如果文件对象丢失，则将URL输入框清空并停止播放器 (完全停止，显示上传占位符)
-                document.getElementById('videoURL').value = '';
-                stopPlaybackInternal(false);
-                // 考虑从历史记录中移除或标记为不可用
-                // removeHistoryItem(index); // 自动化移除丢失的项可能不是最优体验，留给用户手动删除
-            }
-        } else { // type === 'remote'
-            document.getElementById('videoURL').value = item.url;
-            play(item.url); // 调用原始的 `play` 函数处理远程 URL
+      if (item.type === 'local') {
+        // 检查原始的 File 对象是否仍然可用 (仅在同一会话中)
+        if (item.fileObject) {
+            document.getElementById('videoURL').value = item.title; // 更新 URL 输入框显示
+            playCore(item.url, item.fileObject, true, item.fileName); // 播放本地文件
+        } else {
+            // 如果 File 对象丢失 (例如页面刷新后)，则无法播放
+            // 在循环模式下，我们已经处理了跳过逻辑，这里只针对用户在历史记录中点击的情况进行提示
+            alert('本地视频文件已丢失。请重新上传该文件以播放。');
+            document.getElementById('videoURL').value = ''; // 清空URL输入框
+            stopPlaybackInternal(false); // 停止并清理播放器
+            // 重新渲染历史记录，确保无法播放的本地文件旁边有提示或可区分
+            renderHistory(); // 重新渲染历史记录，显示当前状态
         }
+      } else {
+        document.getElementById('videoURL').value = item.url;
+        playCore(item.url, null, false, null); // 播放远程 URL
+      }
     }
 
     /**
      * 删除历史记录项。
      */
     function removeHistoryItem(index) {
-      if (currentlyEditingIndex === index) { // 如果正在编辑，先保存
-        saveEditMode(index);
-      }
-      const itemToRemove = playbackHistory[index];
       playbackHistory.splice(index, 1);
-      localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory));
+      localStorage.setItem('playbackHistory', JSON.stringify(playbackHistory, (key, value) => {
+          if (key === 'fileObject') { return undefined; }
+          return value;
+      }));
       renderHistory();
       // 如果删除的是当前正在播放的项，重置索引
       if (currentPlayingHistoryIndex === index) {
           currentPlayingHistoryIndex = -1;
       } else if (currentPlayingHistoryIndex > index) {
           currentPlayingHistoryIndex--; // 调整后续索引
-      }
-
-      // 如果删除的是本地文件，从 sessionLocalFiles 中移除对应的 File 对象引用
-      // 这仅意味着该 File 对象在内存中不再通过 `sessionLocalFiles` 映射，
-      // 但如果它正在被 `activePlayer` 播放，其 `blob:` URL 仍需由 `stopPlaybackInternal` 管理。
-      if (itemToRemove && itemToRemove.type === 'local' && itemToRemove.fileName) {
-          sessionLocalFiles.delete(itemToRemove.fileName);
       }
     }
 
@@ -4707,12 +4630,11 @@
     function clearHistory() {
       if (playbackHistory.length === 0) return;
 
-      if (confirm('确定要清空所有播放历史吗？此操作不可撤销。')) {
-          playbackHistory = [];
-          localStorage.removeItem('playbackHistory');
-          sessionLocalFiles.clear(); // 清空所有本地文件引用
-          renderHistory();
-          currentPlayingHistoryIndex = -1; // 清空历史记录后重置索引
+      if (confirm('确定要清空所有播放历史吗？')) {
+        playbackHistory = [];
+        localStorage.removeItem('playbackHistory');
+        renderHistory();
+        currentPlayingHistoryIndex = -1; // 清空历史记录后重置索引
       }
     }
 
@@ -4798,9 +4720,8 @@
     function toggleMute() {
       if (!activePlayer) return;
 
-      // 如果当前音量大于0，存储其作为上一个音量
       if (activePlayer.volume > 0) {
-        activePlayer.dataset.previousVolume = activePlayer.volume;
+        activePlayer.dataset.previousVolume = activePlayer.volume; // 存储之前的音量
       }
 
       if (activePlayer.volume > 0) {
@@ -4808,7 +4729,6 @@
         volumeSlider.value = 0;
         inVideoVolumeSlider.value = 0;
       } else {
-        // 如果当前静音，恢复到上一个存储的音量，或默认0.7
         const previousVolume = parseFloat(activePlayer.dataset.previousVolume || 0.7);
         activePlayer.volume = previousVolume;
         volumeSlider.value = Math.round(previousVolume * 100);
@@ -4940,16 +4860,16 @@
         let message = '';
         switch(currentLoopMode) {
             case 'single':
-                message = '单曲循环已开启';
+                message = '已开启单曲循环';
                 break;
             case 'list':
-                message = '列表循环已开启';
+                message = '已开启列表循环';
                 break;
             case 'shuffle':
-                message = '随机播放已开启';
+                message = '已开启随机播放';
                 break;
             default:
-                message = '循环模式已关闭';
+                message = '已关闭循环模式';
                 break;
         }
         updateStatus('stopped', message); // 使用停止状态的样式显示提示
@@ -4989,7 +4909,7 @@
 
       // 处理本地文件
       if (url.startsWith('blob:')) {
-        alert('当前正在播放的是本地视频，无需下载。如果需要保存，请使用浏览器自身的“另存为”功能 (Ctrl+S 或 Cmd+S)。');
+        alert('当前正在播放的是本地视频，无需下载。');
         return;
       }
 
@@ -5046,7 +4966,7 @@
       // For direct URLs, the browser handles the lifecycle, no need to revoke
       if (url.startsWith('blob:')) {
           setTimeout(() => {
-              URL.revokeObjectURL(url); // Clean up the blob URL
+              URL.revokeObjectURL(url); // Clean up the object URL
               document.body.removeChild(a); // Remove the anchor element
           }, 5000); // Give it 5 seconds to initiate download on mobile
       } else {
@@ -5110,14 +5030,10 @@
               updateStatus('loading', `正在下载片段 (${downloadedSegmentsCount}/${totalSegments}) - ${formatBytes(downloadedTotalBytes)}`);
 
               return new Uint8Array(buffer);
-          }
-           catch (error) {
-              // Enhanced error handling for segment fetching
-              console.error(`Error fetching segment ${index + 1} (${segmentUrl}):`, error);
-              // Instead of re-throwing and stopping everything, log and return empty for problematic segments
-              // This allows the rest of the file to be combined if some segments are missing
-              updateStatus('stopped', `下载警告: 片段 ${index+1} 加载失败，部分内容可能丢失。`);
-              return new Uint8Array(0); // Return an empty buffer to keep Promise.all from rejecting
+          } catch (error) {
+              console.error(`Error fetching segment ${index + 1}:`, error);
+              // Re-throw the error to ensure Promise.all rejects if any segment fails
+              throw error;
           }
       });
 
