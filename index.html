@@ -1779,7 +1779,7 @@
             <input
               type="file"
               id="fileInput"
-              accept="video/*"
+              accept="video/*,.mkv"
               multiple
               aria-label="选择本地视频文件"
             />
@@ -2956,10 +2956,10 @@
                     const fileName = file.name.toLowerCase();
                     if (fileName.endsWith('.srt') || fileName.endsWith('.vtt')) {
                         subtitleFiles.push(file);
-                    } else if (file.type.startsWith('video/')) {
+                    } else if (file.type.startsWith('video/') || fileName.endsWith('.mkv')) {
                         videoFiles.push(file);
                     } else {
-                        alert(`文件 "${file.name}" 类型不支持。请拖放视频或字幕文件 (.srt, .vtt)。`);
+                        alert(`文件 "${file.name}" 类型不支持。请拖放视频或字幕文件 (.srt, .vtt, .mkv)。`);
                     }
                 });
 
@@ -3681,6 +3681,11 @@
 
               xgPlayerInstance = new Player(xgplayerConfig);
               activePlayer = xgPlayerInstance; // 设置活跃播放器为 xgplayer 实例
+
+              // 添加点击事件到xgplayer的video元素，确保MKV视频可以通过点击暂停/播放
+              if (xgPlayerInstance && xgPlayerInstance.video) {
+              xgPlayerInstance.video.addEventListener('click', togglePlayPause);
+              }
 
               // 绑定 xgplayer 的事件到我们的通用 UI 更新函数
               xgPlayerInstance.on('play', () => {
