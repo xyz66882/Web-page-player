@@ -1310,7 +1310,7 @@
     }
 
     /* 画面调节按钮并排优化 */
-    .setting-group > .btn-group { 
+    .setting-group > .btn-group {
         flex-wrap: nowrap; /* 不换行 */
         justify-content: space-between; /* 均匀分布按钮 */
     }
@@ -2048,6 +2048,9 @@
     let systemTimeIntervalId = null; // 用于存储 setInterval 的 ID
     // 修改：系统时间显示模式，可以是 'background', 'no-background', 'hidden'
     let systemTimeDisplayMode = localStorage.getItem('systemTimeDisplayMode') || 'background';
+
+    // **修复静音 Bug 相关：用于存储静音前的音量，不依赖于 DOM 元素的 dataset**
+    let savedVolumeBeforeMute = parseFloat(localStorage.getItem('savedVolumeBeforeMute')) || 0.7; // 初始化为 0.0-1.0 范围的值
 
     // 播放器DOM元素引用 (使用 let 声明，方便在 DOMContentLoaded 中赋值)
     let playPauseBtn,
@@ -3290,20 +3293,35 @@
      */
     function setupVolumeControl() {
       // 初始音量设置应在播放器加载后进行，这里只绑定事件
+      // **修复静音 Bug 相关：从本地存储加载音量百分比，或使用默认值 100**
+      const storedVolumePercentage = localStorage.getItem('volumePercentage');
+      if (storedVolumePercentage !== null) {
+          volumeSlider.value = parseInt(storedVolumePercentage, 10);
+      } else {
+          volumeSlider.value = 100; // HTML default
+      }
+
       volumePercentageDisplay.textContent = `${volumeSlider.value}%`; // 初始化音量百分比
-      updateMuteButtonIcon();
+      updateMuteButtonIcon(); // 初始更新静音按钮图标
 
       volumeSlider.addEventListener('input', function () {
         if (!activePlayer) return; // 确保 activePlayer 已定义
-        const volume = this.value / 100;
-        activePlayer.volume = volume;
+        const currentVolume = this.value / 100; // 当前音量 (0.0 - 1.0)
+        activePlayer.volume = currentVolume;
         volumePercentageDisplay.textContent = `${this.value}%`; // 更新音量百分比
         inVideoVolumeSlider.value = this.value; // 同步视频内部音量滑块
         inVideoVolumePercentageDisplay.textContent = `${this.value}%`; // 同步视频内部音量百分比
 
-        if (volume === 0) {
-          volumeIcon.className = 'fas fa-volume-mute';
-        } else if (volume < 0.5) {
+        // **修复静音 Bug 相关：保存当前音量百分比和非静音音量**
+        localStorage.setItem('volumePercentage', this.value); // 保存当前音量百分比
+        if (currentVolume > 0) {
+            savedVolumeBeforeMute = currentVolume; // 仅当音量非零时更新 savedVolumeBeforeMute
+            localStorage.setItem('savedVolumeBeforeMute', savedVolumeBeforeMute.toString());
+        }
+
+        if (currentVolume === 0) {
+          volumeIcon.className = 'fas fa-volume-off'; // 使用 volume-off 表示完全静音
+        } else if (currentVolume < 0.5) {
           volumeIcon.className = 'fas fa-volume-down';
         } else {
           volumeIcon.className = 'fas fa-volume-up';
@@ -3324,20 +3342,25 @@
 
         inVideoVolumeSlider.addEventListener('input', function() {
             if (!activePlayer) return; // 确保 activePlayer 已定义
-            const volume = this.value / 100;
-            activePlayer.volume = volume;
+            const currentVolume = this.value / 100; // 当前音量 (0.0 - 1.0)
+            activePlayer.volume = currentVolume;
             inVideoVolumePercentageDisplay.textContent = `${this.value}%`;
             volumeSlider.value = this.value; // 同步外部音量滑块
             volumePercentageDisplay.textContent = `${this.value}%`; // 同步外部音量百分比
 
-            if (volume === 0) {
+            // **修复静音 Bug 相关：保存当前音量百分比和非静音音量**
+            localStorage.setItem('volumePercentage', this.value); // 保存当前音量百分比
+            if (currentVolume > 0) {
+                savedVolumeBeforeMute = currentVolume; // 仅当音量非零时更新 savedVolumeBeforeMute
+                localStorage.setItem('savedVolumeBeforeMute', savedVolumeBeforeMute.toString());
+            }
+
+            if (currentVolume === 0) {
                 inVideoVolumeIcon.className = 'fas fa-volume-off';
-            } else if (volume < 0.5) {
-                inVideoVolumeIcon.className = 'fas fa-volume-down';
-                inVideoVolumeIcon.className = 'fas fa-volume-down';
+            } else if (currentVolume < 0.5) {
+                inVideoVolumeIcon.className = 'fas fa-volume-down'; // **修复：移除重复代码行**
             } else {
-                inVideoVolumeIcon.className = 'fas fa-volume-up';
-                inVideoVolumeIcon.className = 'fas fa-volume-up';
+                inVideoVolumeIcon.className = 'fas fa-volume-up'; // **修复：移除重复代码行**
             }
             updateMuteButtonIcon(); // 确保静音按钮图标也同步
         });
@@ -3413,6 +3436,9 @@
       }
       localStorage.setItem('backgroundSettings', JSON.stringify(backgroundSettings));
       localStorage.setItem('loopMode', currentLoopMode); // 保存循环模式
+      // **修复静音 Bug 相关：保存当前音量百分比**
+      localStorage.setItem('volumePercentage', volumeSlider.value);
+      localStorage.setItem('savedVolumeBeforeMute', savedVolumeBeforeMute.toString());
     }
 
     /**
@@ -3485,6 +3511,14 @@
       // 加载循环模式
       currentLoopMode = localStorage.getItem('loopMode') || 'none';
       updateLoopModeButtons();
+
+      // **修复静音 Bug 相关：加载保存的非静音音量值**
+      const storedSavedVolumeBeforeMute = localStorage.getItem('savedVolumeBeforeMute');
+      if (storedSavedVolumeBeforeMute !== null) {
+          savedVolumeBeforeMute = parseFloat(storedSavedVolumeBeforeMute);
+      } else {
+          savedVolumeBeforeMute = 0.7; // Default
+      }
     }
 
     /**
@@ -3682,10 +3716,31 @@
               xgPlayerInstance = new Player(xgplayerConfig);
               activePlayer = xgPlayerInstance; // 设置活跃播放器为 xgplayer 实例
 
+              // **修复静音 Bug 相关：设置 activePlayer（xgplayer实例）的初始音量**
+              activePlayer.volume = parseFloat(volumeSlider.value / 100);
+              // 如果播放器非静音启动，则更新 savedVolumeBeforeMute
+              if (activePlayer.volume > 0) {
+                  savedVolumeBeforeMute = activePlayer.volume;
+              }
+
+
               // 添加点击事件到xgplayer的video元素，确保MKV视频可以通过点击暂停/播放
               if (xgPlayerInstance && xgPlayerInstance.video) {
               xgPlayerInstance.video.addEventListener('click', togglePlayPause);
               }
+
+              // 添加键盘事件监听器，确保空格键可以暂停/播放视频，同时避免影响输入框
+              let xgPlayerInstance = null;
+              document.addEventListener('keydown', (event) => {
+              if (event.code === 'Space' && xgPlayerInstance && xgPlayerInstance.video) {
+              const activeElement = document.activeElement;
+              if (!['INPUT', 'TEXTAREA'].includes(activeElement.tagName) && !activeElement.isContentEditable) {
+              togglePlayPause();
+              event.preventDefault();
+              }
+              }
+              });
+
 
               // 绑定 xgplayer 的事件到我们的通用 UI 更新函数
               xgPlayerInstance.on('play', () => {
@@ -3736,6 +3791,14 @@
                   inVideoVolumeSlider.value = Math.round(activePlayer.volume * 100);
                   volumePercentageDisplay.textContent = `${volumeSlider.value}%`;
                   inVideoVolumePercentageDisplay.textContent = `${inVideoVolumeSlider.value}%`;
+
+                  // **修复静音 Bug 相关：保存当前音量百分比和非静音音量**
+                  localStorage.setItem('volumePercentage', volumeSlider.value); // 保存当前音量百分比
+                  if (activePlayer.volume > 0) {
+                      savedVolumeBeforeMute = activePlayer.volume;
+                      localStorage.setItem('savedVolumeBeforeMute', savedVolumeBeforeMute.toString());
+                  }
+
                   if (activePlayer.volume === 0) {
                       volumeIcon.className = 'fas fa-volume-off';
                       inVideoVolumeIcon.className = 'fas fa-volume-off';
@@ -3822,6 +3885,13 @@
         nativeVideoPlayer.style.display = 'block'; // 显示原生 video
         xgplayerContainerElement.style.display = 'none'; // 隐藏 xgplayer 容器
         activePlayer = nativeVideoPlayer; // 设置活跃播放器为原生
+
+        // **修复静音 Bug 相关：设置 activePlayer（原生 video 元素）的初始音量**
+        activePlayer.volume = parseFloat(volumeSlider.value / 100);
+        // 如果播放器非静音启动，则更新 savedVolumeBeforeMute
+        if (activePlayer.volume > 0) {
+            savedVolumeBeforeMute = activePlayer.volume;
+        }
 
         // 销毁之前的 HLS.js 实例
         if (hlsInstance) {
@@ -4726,24 +4796,29 @@
     function toggleMute() {
       if (!activePlayer) return;
 
-      if (activePlayer.volume > 0) {
-        activePlayer.dataset.previousVolume = activePlayer.volume; // 存储之前的音量
-      }
-
+      // 如果当前音量大于 0 (未静音)，则将当前音量保存为下次取消静音的音量
+      // 注意：savedVolumeBeforeMute 已经在 slider 的 input 事件中更新
+      // 这里只需要在静音时，将 activePlayer.volume 设置为 0，并将 UI 更新到 0
+      // 在取消静音时，将 activePlayer.volume 设置为 savedVolumeBeforeMute
       if (activePlayer.volume > 0) {
         activePlayer.volume = 0;
         volumeSlider.value = 0;
         inVideoVolumeSlider.value = 0;
       } else {
-        const previousVolume = parseFloat(activePlayer.dataset.previousVolume || 0.7);
-        activePlayer.volume = previousVolume;
-        volumeSlider.value = Math.round(previousVolume * 100);
-        inVideoVolumeSlider.value = Math.round(previousVolume * 100);
+        // 如果当前音量为 0 (已静音)，则恢复到上次的非静音音量
+        const targetVolume = savedVolumeBeforeMute > 0 ? savedVolumeBeforeMute : 0.7; // 如果 savedVolumeBeforeMute 也是0，默认恢复到 0.7
+        activePlayer.volume = targetVolume;
+        volumeSlider.value = Math.round(targetVolume * 100);
+        inVideoVolumeSlider.value = Math.round(targetVolume * 100);
       }
+
+      // **修复静音 Bug 相关：确保静音/取消静音操作后音量百分比被保存**
+      localStorage.setItem('volumePercentage', volumeSlider.value); // 保存当前音量百分比
 
       volumePercentageDisplay.textContent = `${volumeSlider.value}%`;
       inVideoVolumePercentageDisplay.textContent = `${inVideoVolumeSlider.value}%`;
 
+      // 根据当前音量更新音量图标
       if (activePlayer.volume === 0) {
         volumeIcon.className = 'fas fa-volume-off';
         inVideoVolumeIcon.className = 'fas fa-volume-off';
@@ -4765,10 +4840,10 @@
       const muteButton = document.getElementById('muteButton');
       if (muteButton && muteButtonIcon && activePlayer) {
         if (activePlayer.volume === 0) {
-          muteButtonIcon.className = 'fas fa-volume-off';
+          muteButtonIcon.className = 'fas fa-volume-off'; // 使用 volume-off 表示静音
           muteButton.setAttribute('aria-label', '取消静音');
         } else {
-          muteButtonIcon.className = 'fas fa-volume-up';
+          muteButtonIcon.className = 'fas fa-volume-up'; // 使用 volume-up 表示非静音
           muteButton.setAttribute('aria-label', '静音');
         }
       }
