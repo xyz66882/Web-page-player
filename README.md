@@ -57,6 +57,11 @@
 | 公网访问 | `https` 部署 | 需统一使用 `https` 视频源 |
 
 ---
+## 🎥 mkv视频提取字幕教程
+
+如需从 MKV 视频文件中提取字幕，可以参考此视频教程：[Bilibili - MKV视频提取字幕教程](https://www.bilibili.com/video/BV16KbLzvEmP/)
+
+---
 
 ## ❓常见问题解答
 
