@@ -1,5 +1,6 @@
 # Web-page-player
 # 本地网页视频播放器（纯 HTML 实现）
+![Web-page-player](https://socialify.git.ci/xyz66882/Web-page-player/image?font=Raleway&forks=1&issues=1&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Auto)
 <p align="center">
   <!-- 创建日期 --><img alt="GitHub Created At" src="https://img.shields.io/github/created-at/xyz66882/Web-page-player?logo=github&label=%E5%88%9B%E5%BB%BA%E6%97%A5%E6%9C%9F">
   <!-- 下载量 --><a href="https://github.com/xyz66882/Web-page-player/releases"><img src="https://img.shields.io/github/downloads/xyz66882/Web-page-player/total?logo=github&label=%E4%B8%8B%E8%BD%BD%E9%87%8F"></a>
@@ -81,6 +82,24 @@ A：尝试更换浏览器，优先使用系统默认浏览器或 Chrome。
 - 本播放器为纯 HTML 实现，简单易用。
 - 请根据部署环境选择合适的视频协议。
 - 手机浏览器兼容性需注意直播协议和浏览器支持情况。
+
+# 🚀 贡献者
+
+<a href="https://github.com/xyz66882/Web-page-player/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=xyz66882/Web-page-player" />
+</a>
+<br /><br />
+
+
+# ⭐️ 收藏 历史
+
+<a href="https://www.star-history.com/#xyz66882/Web-page-player&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xyz66882/Web-page-player&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xyz66882/Web-page-player&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xyz66882/Web-page-player&type=Date" />
+ </picture>
+</a>
 
 --- 
 
