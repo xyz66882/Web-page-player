@@ -2395,6 +2395,34 @@
           seekSlider.value = this.value; // 同步外部进度条
           currentTimeDisplay.textContent = formatTime(this.value); // 同步外部时间
       });
+
+      // ====================================================================
+      // URL 参数支持功能 - 自动播放通过 src 参数传递的视频链接
+      // ====================================================================
+
+      // 解析 URL 参数
+      const urlParams = new URLSearchParams(window.location.search);
+      const srcParam = urlParams.get('src');
+
+      if (srcParam) {
+        try {
+          // 解码 URL 参数值，支持编码的 URL
+          const decodedSrc = decodeURIComponent(srcParam);
+
+          // 验证是否为有效的 URL
+          if (decodedSrc && (decodedSrc.startsWith('http://') || decodedSrc.startsWith('https://'))) {
+            // 延迟一小段时间确保所有初始化完成
+            setTimeout(() => {
+              console.log('检测到 URL 参数 src，自动加载视频:', decodedSrc);
+              play(decodedSrc);
+            }, 100);
+          } else {
+            console.warn('URL 参数 src 不是有效的 HTTP/HTTPS 链接:', decodedSrc);
+          }
+        } catch (error) {
+          console.error('解析 URL 参数 src 时出错:', error);
+        }
+      }
     });
 
     // ====================================================================
