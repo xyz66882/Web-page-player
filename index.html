@@ -9,7 +9,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <!-- HLS.js 库 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/8.0.0-beta.3/hls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.6.13/hls.js"></script>
   <!-- xgplayer 和 xgplayer-flv 库 -->
   <link rel="stylesheet" href="https://unpkg.byted-static.com/xgplayer/3.0.21/dist/index.min.css"/>
   <script charset="utf-8" src="https://unpkg.byted-static.com/xgplayer/3.0.21/dist/index.min.js"></script>
@@ -2050,7 +2050,7 @@
     let systemTimeDisplayMode = localStorage.getItem('systemTimeDisplayMode') || 'background';
 
     // **修复静音 Bug 相关：用于存储静音前的音量，不依赖于 DOM 元素的 dataset**
-    let savedVolumeBeforeMute = parseFloat(localStorage.getItem('savedVolumeBeforeMute')) || 0.7; // 初始化为 0.0-1.0 范围的值
+    let savedVolumeBeforeMute = parseFloat(localStorage.getItem('savedVolumeBeforeMute')) || 1.0; // 初始化为 0.0-1.0 范围的值，默认100%
 
     // 播放器DOM元素引用 (使用 let 声明，方便在 DOMContentLoaded 中赋值)
     let playPauseBtn,
@@ -2312,10 +2312,9 @@
       if (window.innerWidth > 768) {
         videoContainerElement.addEventListener('mousemove', showControls);
         videoContainerElement.addEventListener('mouseleave', resetHideTimer);
-        // PC端点击视频区域播放/暂停
-        nativeVideoPlayer.addEventListener('click', togglePlayPause); // 点击原生视频播放/暂停
-        // 新增：PC端点击xgplayer容器区域播放/暂停，确保xgplayer激活时也能方便操作
-        xgplayerContainerElement.addEventListener('click', togglePlayPause);
+        // PC端点击视频区域播放/暂停 - 移除，由全局 videoContainerElement.addEventListener('click') 处理
+        // nativeVideoPlayer.addEventListener('click', togglePlayPause);
+        // xgplayerContainerElement.addEventListener('click', togglePlayPause);
 
         // 确保在控制条元素上移动鼠标也能保持显示
         inVideoControls.addEventListener('mousemove', showControls);
@@ -2330,15 +2329,8 @@
           el.addEventListener('mousedown', showControls);
           el.addEventListener('mouseup', showControls);
         });
-      } else { // 移动端点击事件
-        videoContainerElement.addEventListener('click', function() {
-          if (inVideoControls.classList.contains('controls-visible')) {
-            hideControls();
-            clearTimeout(controlsHideTimeout); // Clear timeout if user explicitly hides
-          } else {
-            showControls(); // Show and start hide timer
-          }
-        });
+      } else { // 移动端点击事件 - 移除，由全局 videoContainerElement.addEventListener('click') 处理
+        // videoContainerElement.addEventListener('click', function() { /* ... removed ... */ });
       }
 
       // 视频播放时显示控制条并启动计时器
@@ -2423,6 +2415,45 @@
           console.error('解析 URL 参数 src 时出错:', error);
         }
       }
+
+      // --- 新增：统一处理 videoContainerElement 的点击事件 (桌面和移动端) ---
+      videoContainerElement.addEventListener('click', function(e) {
+        // 检查点击目标是否是视频内部控制条的任何交互元素
+        const isInteractiveControl = e.target.closest('#inVideoControls button, #inVideoControls input');
+
+        if (isInteractiveControl) {
+            // 如果点击的是内部控制，则让其默认行为发生，不触发视频区域的播放/暂停
+            return;
+        }
+
+        if (window.innerWidth <= 768) { // 移动端逻辑
+            // 移动端：第一次点击通常显示/隐藏控制条，并可能伴随播放/暂停
+            if (activePlayer && activePlayer.paused) {
+                // 如果是暂停状态，点击视频区域尝试播放并确保显示控制条
+                activePlayer.play().catch(err => console.error("Mobile play failed:", err));
+                showControls(); // 播放时也确保控制条可见 (并启动隐藏计时器)
+            } else if (activePlayer && !activePlayer.paused) {
+                // 如果是播放状态，点击则暂停并显示控制条
+                activePlayer.pause();
+                showControls(); // 暂停时也确保控制条可见 (并清除隐藏计时器)
+            } else {
+                // 如果没有activePlayer，或者点击仅为了切换controls
+                if (inVideoControls.classList.contains('controls-visible')) {
+                    hideControls();
+                    clearTimeout(controlsHideTimeout);
+                } else {
+                    showControls();
+                }
+            }
+        } else { // 桌面端逻辑
+            // 桌面端：点击视频区域通常只用于切换播放/暂停
+            if (activePlayer) {
+                togglePlayPause();
+            }
+        }
+      });
+      // --- 结束统一点击事件添加 ---
+
     });
 
     // ====================================================================
@@ -3327,6 +3358,8 @@
           volumeSlider.value = parseInt(storedVolumePercentage, 10);
       } else {
           volumeSlider.value = 100; // HTML default
+          // 如果没有保存的音量偏好，则保存 100% 作为默认值
+          localStorage.setItem('volumePercentage', '100');
       }
 
       volumePercentageDisplay.textContent = `${volumeSlider.value}%`; // 初始化音量百分比
@@ -3338,7 +3371,7 @@
         activePlayer.volume = currentVolume;
         volumePercentageDisplay.textContent = `${this.value}%`; // 更新音量百分比
         inVideoVolumeSlider.value = this.value; // 同步视频内部音量滑块
-        inVideoVolumePercentageDisplay.textContent = `${this.value}%`; // 同步视频内部音量百分比
+        inVideoVolumePercentageDisplay.textContent = `${this.value}%`; /// 同步视频内部音量百分比
 
         // **修复静音 Bug 相关：保存当前音量百分比和非静音音量**
         localStorage.setItem('volumePercentage', this.value); // 保存当前音量百分比
@@ -3545,7 +3578,7 @@
       if (storedSavedVolumeBeforeMute !== null) {
           savedVolumeBeforeMute = parseFloat(storedSavedVolumeBeforeMute);
       } else {
-          savedVolumeBeforeMute = 0.7; // Default
+          savedVolumeBeforeMute = 1.0; // Default
       }
     }
 
@@ -3708,7 +3741,9 @@
       const isFlv = (extension === 'flv' || url.includes('.flv'));
       const isM3U8 = (extension === 'm3u8' || url.includes('.m3u8'));
       const isMkv = (extension === 'mkv' || url.includes('.mkv')); // 新增：检查是否为MKV
-      const isLiveStreamExample = url.includes('douyincdn.com') && isFlv; // 特定直播流示例
+
+      // **修改：更通用的直播流检测，包含用户提供的huajiao.com域名**
+      const isLiveStreamExample = isFlv && (url.includes('live') || url.includes('stream') || url.includes('huajiao.com'));
 
       // 决定是否使用 xgplayer
       // FLV、特定直播流和 MKV 优先使用 xgplayer
@@ -3720,7 +3755,11 @@
           try {
               // 销毁之前的 xgplayer 实例（如果有）
               if (xgPlayerInstance) {
-                  xgPlayerInstance.destroy();
+                  try {
+                      xgPlayerInstance.destroy();
+                  } catch (e) {
+                      console.warn("Error destroying previous xgplayer instance:", e);
+                  }
                   xgPlayerInstance = null;
               }
 
@@ -3731,10 +3770,13 @@
                   fluid: true, // 响应式尺寸
                   controls: false, // 我们使用自定义控件，禁用 xgplayer 的默认控件
                   autoplay: true, // 让 xgplayer 自动播放
-                  isLive: isLiveStreamExample, // 设置为 true 表示直播流
+                  // **修改：确保 isLive 参数根据新的检测逻辑设置**
+                  isLive: isLiveStreamExample,
+                  // IMPORTANT: Ensure volume is explicitly set at instantiation for xgplayer
+                  volume: parseFloat(localStorage.getItem('volumePercentage')) / 100 || 1.0, // 新增：在XGPlayer初始化时就设置音量，优先本地存储，否则100%
               };
 
-              // 仅在是 FLV 流或特定直播流时才添加 FlvPlayer 插件
+              // 仅在是 FLV 流或被识别为直播流时才添加 FlvPlayer 插件
               if (isFlv || isLiveStreamExample) {
                   xgplayerConfig.plugins = [FlvPlayer];
               }
@@ -3744,8 +3786,15 @@
               xgPlayerInstance = new Player(xgplayerConfig);
               activePlayer = xgPlayerInstance; // 设置活跃播放器为 xgplayer 实例
 
-              // **修复静音 Bug 相关：设置 activePlayer（xgplayer实例）的初始音量**
-              activePlayer.volume = parseFloat(volumeSlider.value / 100);
+              // Sync the activePlayer's volume to the slider's value AFTER instantiation
+              // This is a fallback/sync, the initial volume should already be set by config.
+              // We need to ensure the UI volume slider reflects the actual player volume.
+              const currentVolumeFromConfig = xgplayerConfig.volume;
+              volumeSlider.value = Math.round(currentVolumeFromConfig * 100);
+              inVideoVolumeSlider.value = Math.round(currentVolumeFromConfig * 100);
+              volumePercentageDisplay.textContent = `${volumeSlider.value}%`;
+              inVideoVolumePercentageDisplay.textContent = `${inVideoVolumeSlider.value}%`;
+
               // 如果播放器非静音启动，则更新 savedVolumeBeforeMute
               if (activePlayer.volume > 0) {
                   savedVolumeBeforeMute = activePlayer.volume;
@@ -3754,13 +3803,14 @@
 
               // 添加点击事件到xgplayer的video元素，确保MKV视频可以通过点击暂停/播放
               if (xgPlayerInstance && xgPlayerInstance.video) {
-              xgPlayerInstance.video.addEventListener('click', togglePlayPause);
+              // 不再直接绑定点击事件到xgplayer.video，因为videoContainerElement的事件将统一处理这些点击
+              // xgPlayerInstance.video.addEventListener('click', togglePlayPause);
               }
 
               // 添加键盘事件监听器，确保空格键可以暂停/播放视频，同时避免影响输入框
-              let xgPlayerInstance = null;
+              // 此处 `xgPlayerInstance` 已经在外部作用域定义，无需 `let xgPlayerInstance = null;`
               document.addEventListener('keydown', (event) => {
-              if (event.code === 'Space' && xgPlayerInstance && xgPlayerInstance.video) {
+              if (event.code === 'Space' && activePlayer === xgPlayerInstance && xgPlayerInstance.video) { // 检查是否是xgplayer且在播放
               const activeElement = document.activeElement;
               if (!['INPUT', 'TEXTAREA'].includes(activeElement.tagName) && !activeElement.isContentEditable) {
               togglePlayPause();
@@ -3915,7 +3965,7 @@
         activePlayer = nativeVideoPlayer; // 设置活跃播放器为原生
 
         // **修复静音 Bug 相关：设置 activePlayer（原生 video 元素）的初始音量**
-        activePlayer.volume = parseFloat(volumeSlider.value / 100);
+        activePlayer.volume = parseFloat(localStorage.getItem('volumePercentage')) / 100 || 1.0;
         // 如果播放器非静音启动，则更新 savedVolumeBeforeMute
         if (activePlayer.volume > 0) {
             savedVolumeBeforeMute = activePlayer.volume;
@@ -4138,7 +4188,11 @@
       }
       // 销毁 xgplayer 实例
       if (xgPlayerInstance) {
-          xgPlayerInstance.destroy();
+          try {
+              xgPlayerInstance.destroy();
+          } catch (e) {
+              console.warn("Error destroying xgplayer instance:", e);
+          }
           xgPlayerInstance = null;
       }
 
@@ -4767,7 +4821,7 @@
                 } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
                 } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
+                    document.msRequestFullscreen(); // MSFullscreen 应该用 RequestFullscreen
                 }
             }
             // 退出全屏时，如果是在移动设备上，解锁屏幕方向
@@ -4834,7 +4888,7 @@
         inVideoVolumeSlider.value = 0;
       } else {
         // 如果当前音量为 0 (已静音)，则恢复到上次的非静音音量
-        const targetVolume = savedVolumeBeforeMute > 0 ? savedVolumeBeforeMute : 0.7; // 如果 savedVolumeBeforeMute 也是0，默认恢复到 0.7
+        const targetVolume = savedVolumeBeforeMute > 0 ? savedVolumeBeforeMute : 1.0; // 如果 savedVolumeBeforeMute 也是0，默认恢复到 1.0
         activePlayer.volume = targetVolume;
         volumeSlider.value = Math.round(targetVolume * 100);
         inVideoVolumeSlider.value = Math.round(targetVolume * 100);
