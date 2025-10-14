@@ -2348,8 +2348,17 @@
             }
             playPauseIcon.className = 'fas fa-play';
             inVideoPlayPauseIcon.className = 'fas fa-play';
-            clearTimeout(controlsHideTimeout);
-            inVideoControls.classList.add('controls-visible');
+            
+            // --- MODIFICATION START ---
+            // 根据桌面/移动端区分暂停时的控制条显示逻辑
+            if (activePlayer && window.innerWidth > 768) { // PC端
+              // 在PC端暂停时，显示控制条，并启动自动隐藏计时器
+              showControls(); // showControls 会添加 'controls-visible' 并调用 resetHideTimer
+            } else { // 移动端 或 activePlayer 不存在时 (保持原有行为，即控制条长期可见)
+              clearTimeout(controlsHideTimeout); // 清除任何现有隐藏计时器
+              inVideoControls.classList.add('controls-visible'); // 强制控制条可见
+            }
+            // --- MODIFICATION END ---
         });
 
       nativeVideoPlayer.addEventListener('waiting', function () {
@@ -2621,15 +2630,26 @@
 
     /**
      * 重置自动隐藏计时器。
+     * - 在桌面端 (PC)，无论视频是播放还是暂停，只要有用户交互（如鼠标移动、点击），都会启动计时器，在指定时间后自动隐藏控制条。
+     * - 在移动端，只有当视频处于播放状态时，用户交互才会启动计时器自动隐藏。如果视频暂停，控制条将保持可见（与原行为一致）。
      */
     function resetHideTimer() {
-      clearTimeout(controlsHideTimeout);
-      // 只有在视频播放且不是暂停状态时才启动自动隐藏
-      if (activePlayer && !activePlayer.paused && window.innerWidth > 768) { // 桌面端才自动隐藏
-        controlsHideTimeout = setTimeout(hideControls, controlsVisibleDuration);
-      } else if (activePlayer && !activePlayer.paused && window.innerWidth <= 768) { // 移动端也自动隐藏，但通过点击触发
-        controlsHideTimeout = setTimeout(hideControls, controlsVisibleDuration);
-      }
+        clearTimeout(controlsHideTimeout);
+
+        if (!activePlayer) return; // 如果没有活跃的播放器，则不启动任何隐藏计时器。
+
+        const isDesktop = window.innerWidth > 768; // 判断是否为桌面端
+
+        if (isDesktop) {
+            // 在桌面端，无论播放还是暂停，只要有交互，就启动计时器自动隐藏
+            controlsHideTimeout = setTimeout(hideControls, controlsVisibleDuration);
+        } else { // 移动端
+            // 移动端保持原有逻辑：只有在播放时才启动自动隐藏计时器。
+            // 如果移动端是暂停状态，则不启动自动隐藏计时器，让控制条保持可见。
+            if (!activePlayer.paused) {
+                controlsHideTimeout = setTimeout(hideControls, controlsVisibleDuration);
+            }
+        }
     }
 
     /**
@@ -3082,7 +3102,7 @@
         });
 
         nativeVideoPlayer.addEventListener('pause', function () {
-            if (currentPlayingMethod !== 'xgplayer') {
+            if (currentPlayingMethod !== 'xgplayer') { // 仅当原生播放器被使用时
                 stopProgressBarUpdate(); // 停止 requestAnimationFrame 循环
                 // 仅当不是拖动或键盘快进/快退导致的暂停时，才显示“播放已暂停”
                 if (!isSeeking && !isKeyboardSeeking) {
@@ -3090,8 +3110,17 @@
                 }
                 playPauseIcon.className = 'fas fa-play';
                 inVideoPlayPauseIcon.className = 'fas fa-play';
-                clearTimeout(controlsHideTimeout);
-                inVideoControls.classList.add('controls-visible');
+                
+                // --- MODIFICATION START ---
+                // 根据桌面/移动端区分暂停时的控制条显示逻辑
+                if (activePlayer && window.innerWidth > 768) { // PC端
+                  // 在PC端暂停时，显示控制条，并启动自动隐藏计时器
+                  showControls(); // showControls 会添加 'controls-visible' 并调用 resetHideTimer
+                } else { // 移动端 或 activePlayer 不存在时 (保持原有行为，即控制条长期可见)
+                  clearTimeout(controlsHideTimeout); // 清除任何现有隐藏计时器
+                  inVideoControls.classList.add('controls-visible'); // 强制控制条可见
+                }
+                // --- MODIFICATION END ---
             }
         });
 
@@ -3803,7 +3832,7 @@
 
               // 添加点击事件到xgplayer的video元素，确保MKV视频可以通过点击暂停/播放
               if (xgPlayerInstance && xgPlayerInstance.video) {
-              // 不再直接绑定点击事件到xgplayer.video，因为videoContainerElement的事件将统一处理这些点击
+              // 不再直接绑定点击事件到xgplayer的video，因为videoContainerElement的事件将统一处理这些点击
               // xgPlayerInstance.video.addEventListener('click', togglePlayPause);
               }
 
@@ -3838,8 +3867,17 @@
                   }
                   playPauseIcon.className = 'fas fa-play';
                   inVideoPlayPauseIcon.className = 'fas fa-play';
-                  clearTimeout(controlsHideTimeout);
-                  inVideoControls.classList.add('controls-visible');
+
+                  // --- MODIFICATION START ---
+                  // 根据桌面/移动端区分暂停时的控制条显示逻辑
+                  if (activePlayer && window.innerWidth > 768) { // PC端
+                    // 在PC端暂停时，显示控制条，并启动自动隐藏计时器
+                    showControls(); // showControls 会添加 'controls-visible' 并调用 resetHideTimer
+                  } else { // 移动端 或 activePlayer 不存在时 (保持原有行为，即控制条长期可见)
+                    clearTimeout(controlsHideTimeout); // 清除任何现有隐藏计时器
+                    inVideoControls.classList.add('controls-visible'); // 强制控制条可见
+                  }
+                  // --- MODIFICATION END ---
               });
               xgPlayerInstance.on('ended', handleVideoEnded);
               xgPlayerInstance.on('error', handleVideoError);
