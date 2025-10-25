@@ -63,6 +63,9 @@
 如需从 MKV 视频文件中提取字幕，可以参考此视频教程：[Bilibili - MKV视频提取字幕教程](https://www.bilibili.com/video/BV16KbLzvEmP/)
 
 ---
+## 📓 思源笔记使用教程
+参考https://github.com/xyz66882/Web-page-player/issues/10
+---
 
 ## ❓常见问题解答
 
