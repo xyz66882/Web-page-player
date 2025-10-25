@@ -64,7 +64,7 @@
 
 ---
 ## 📓 思源笔记使用教程
-参考https://github.com/xyz66882/Web-page-player/issues/10
+参考[#10](https://github.com/xyz66882/Web-page-player/issues/10)
 ---
 
 ## ❓常见问题解答
